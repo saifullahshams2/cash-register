@@ -23,7 +23,7 @@ class PosTest extends TestCase
     {
         $response = $this->get('/');
         $response->assertStatus(200);
-        $response->assertSee('CASH REGISTER POS');
+        $response->assertSee('CASH REGISTER');
         $response->assertSee('KWD (3 Decimals)');
     }
 
@@ -78,7 +78,7 @@ class PosTest extends TestCase
             ->assertSet('tenderedInput', '5.25');
     }
 
-    public function test_complete_checkout_creates_order_and_items(): void
+    public function test_complete_checkout_saves_order_and_resets_cart_without_popup(): void
     {
         $product = Product::first();
 
@@ -86,8 +86,8 @@ class PosTest extends TestCase
             ->call('addToCart', $product->id)
             ->call('setDenomination', 20.000)
             ->call('checkout')
-            ->assertSet('showReceiptModal', true)
-            ->assertCount('cart', 0);
+            ->assertCount('cart', 0)
+            ->assertSet('tenderedInput', '0.000');
 
         $this->assertDatabaseHas('orders', [
             'total' => $product->price,

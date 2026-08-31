@@ -5,33 +5,25 @@ namespace App\Livewire;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class Pos extends Component
 {
     public string $search = '';
-    public string $selectedCategory = 'ALL';
     
-    /** @var array<string, array{id: int, name: string, code: string, price: float, quantity: int, subtotal: float, image: string, color: string}> */
+    /** @var array<string, array{id: int, name: string, code: string, price: float, quantity: int, subtotal: float}> */
     public array $cart = [];
 
     public string $tenderedInput = '0.000';
     public float $discount = 0.000;
-    public float $taxRate = 0.000; // 0% tax by default in Kuwait
+    public float $taxRate = 0.000;
     public string $paymentMethod = 'CASH'; // CASH, CARD, KNET
 
-    // Held carts management
+    // Held carts
     public array $heldCarts = [];
-    public ?int $selectedHeldCartIndex = null;
 
-    // Completed Order Modal
-    public bool $showReceiptModal = false;
-    public ?Order $lastOrder = null;
-    public array $lastOrderItems = [];
-
-    // Success / Error notification
+    // Notification toast
     public ?string $notificationMessage = null;
     public string $notificationType = 'success';
 
@@ -60,8 +52,6 @@ class Pos extends Component
                 'price' => (float) $product->price,
                 'quantity' => 1,
                 'subtotal' => (float) $product->price,
-                'image' => $product->image ?? '📦',
-                'color' => $product->color ?? 'emerald',
             ];
         }
 
@@ -109,11 +99,6 @@ class Pos extends Component
         $this->notify('Cart cleared', 'info');
     }
 
-    public function setCategory(string $category): void
-    {
-        $this->selectedCategory = $category;
-    }
-
     // --- Denominations & Numpad ---
 
     public function setExact(): void
@@ -136,7 +121,6 @@ class Pos extends Component
 
     public function numpadInput(string $char): void
     {
-        // Clean input
         $val = $this->tenderedInput;
 
         if ($val === '0.000' || $val === '0' || $val === '0.00' || $val === '0.0') {
@@ -155,11 +139,10 @@ class Pos extends Component
             return;
         }
 
-        // Limit to max 3 decimal places if decimal exists
         if (str_contains($val, '.')) {
             $parts = explode('.', $val);
             if (isset($parts[1]) && strlen($parts[1]) >= 3 && $char !== '') {
-                return; // already has 3 decimal digits
+                return;
             }
         }
 
@@ -188,7 +171,6 @@ class Pos extends Component
     {
         $this->paymentMethod = $method;
         if ($method === 'CARD' || $method === 'KNET') {
-            // For card/knet, tendered is automatically exact
             $this->setExact();
         }
     }
@@ -212,7 +194,7 @@ class Pos extends Component
 
         $this->cart = [];
         $this->tenderedInput = '0.000';
-        $this->notify('Order held successfully (' . count($this->heldCarts) . ' held)', 'info');
+        $this->notify('Order held (' . count($this->heldCarts) . ' in queue)', 'info');
     }
 
     public function restoreHeldCart(int $index): void
@@ -224,7 +206,7 @@ class Pos extends Component
         }
     }
 
-    // --- Checkout ---
+    // --- Direct Checkout without Popup ---
 
     public function checkout(): void
     {
@@ -238,7 +220,7 @@ class Pos extends Component
 
         if ($this->paymentMethod === 'CASH' && $tendered < $total) {
             $shortage = number_format($total - $tendered, 3, '.', '');
-            $this->notify("Tendered amount is short by {$shortage} KWD", 'error');
+            $this->notify("Tendered is short by {$shortage} KWD", 'error');
             return;
         }
 
@@ -248,8 +230,10 @@ class Pos extends Component
         try {
             DB::beginTransaction();
 
+            $orderNumber = 'INV-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -4));
+
             $order = Order::create([
-                'order_number' => 'INV-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -4)),
+                'order_number' => $orderNumber,
                 'subtotal' => $subtotal,
                 'discount' => $this->discount,
                 'tax' => round($subtotal * ($this->taxRate / 100), 3),
@@ -258,12 +242,11 @@ class Pos extends Component
                 'change' => $change,
                 'payment_method' => $this->paymentMethod,
                 'status' => 'COMPLETED',
-                'notes' => 'Cash Register POS Checkout',
+                'notes' => 'Cash Register Direct Checkout',
             ]);
 
-            $orderItems = [];
             foreach ($this->cart as $item) {
-                $orderItem = OrderItem::create([
+                OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $item['id'],
                     'product_name' => $item['name'],
@@ -273,33 +256,22 @@ class Pos extends Component
                     'subtotal' => $item['subtotal'],
                 ]);
 
-                // Reduce stock
                 Product::where('id', $item['id'])->decrement('stock', $item['quantity']);
-                $orderItems[] = $orderItem->toArray();
             }
 
             DB::commit();
 
-            $this->lastOrder = $order;
-            $this->lastOrderItems = $this->cart;
-            $this->showReceiptModal = true;
-
-            // Reset cart
+            // Reset cart & inputs immediately without modal popup
             $this->cart = [];
             $this->tenderedInput = '0.000';
             $this->discount = 0.000;
-            $this->notify('Transaction completed successfully!', 'success');
+
+            $changeFormatted = number_format($change, 3, '.', '');
+            $this->notify("Saved {$orderNumber} | Change: {$changeFormatted} KWD", 'success');
         } catch (\Throwable $e) {
             DB::rollBack();
-            $this->notify('Checkout failed: ' . $e->getMessage(), 'error');
+            $this->notify('Checkout error: ' . $e->getMessage(), 'error');
         }
-    }
-
-    public function closeReceiptModal(): void
-    {
-        $this->showReceiptModal = false;
-        $this->lastOrder = null;
-        $this->lastOrderItems = [];
     }
 
     // --- Computed Properties ---
@@ -324,11 +296,6 @@ class Pos extends Component
         return round($tendered - $total, 3);
     }
 
-    public function getCategoriesProperty(): array
-    {
-        return ['ALL', 'Hot Drinks', 'Cold Drinks', 'Bakery', 'Snacks', 'Retail'];
-    }
-
     private function autoUpdateExactIfMatched(): void
     {
         if ($this->paymentMethod !== 'CASH') {
@@ -346,27 +313,18 @@ class Pos extends Component
     {
         $productsQuery = Product::query()->where('is_active', true);
 
-        if ($this->selectedCategory !== 'ALL') {
-            $productsQuery->where('category', $this->selectedCategory);
-        }
-
         if (!empty($this->search)) {
             $search = trim($this->search);
-            $productsQuery->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('code', 'like', "%{$search}%")
-                  ->orWhere('category', 'like', "%{$search}%");
-            });
+            $productsQuery->where('name', 'like', "%{$search}%");
         }
 
-        $products = $productsQuery->orderBy('category')->orderBy('name')->get();
+        $products = $productsQuery->orderBy('name')->get();
 
         return view('livewire.pos', [
             'products' => $products,
             'subtotal' => $this->getSubtotalProperty(),
             'total' => $this->getTotalProperty(),
             'changeDue' => $this->getChangeDueProperty(),
-            'categories' => $this->getCategoriesProperty(),
         ])->layout('components.layouts.app');
     }
 }
