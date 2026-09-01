@@ -15,10 +15,14 @@ class Pos extends Component
     /** @var array<string, array{id: int, name: string, code: string, price: float, quantity: int, subtotal: float}> */
     public array $cart = [];
 
+    // Numpad input buffer (for manual price or cash tender)
+    public string $numpadInput = '0.000';
     public string $tenderedInput = '0.000';
     public float $discount = 0.000;
     public float $taxRate = 0.000;
-    public string $paymentMethod = 'CASH'; // CASH, CARD, KNET
+    
+    // Payment method: null until explicitly clicked ('CASH' or 'KNET')
+    public ?string $paymentMethod = null;
 
     // Held carts
     public array $heldCarts = [];
@@ -29,17 +33,37 @@ class Pos extends Component
 
     public function mount(): void
     {
+        $this->numpadInput = '0.000';
         $this->tenderedInput = '0.000';
+        $this->paymentMethod = null;
     }
 
-    public function addToCart(int $productId): void
+    /**
+     * Add product to cart with manual price from numpad if set,
+     * or fallback to product's baseline price.
+     */
+    public function addToCart(int $productId, ?float $customPrice = null): void
     {
         $product = Product::find($productId);
         if (!$product) {
             return;
         }
 
-        $key = (string) $product->id;
+        // Determine price: custom passed > numpad buffer > product database price > 0.000
+        if ($customPrice !== null) {
+            $price = round($customPrice, 3);
+        } elseif ((float) $this->numpadInput > 0) {
+            $price = round((float) $this->numpadInput, 3);
+            // Reset numpad buffer for next item
+            $this->numpadInput = '0.000';
+        } elseif ((float) $product->price > 0) {
+            $price = (float) $product->price;
+        } else {
+            $price = 0.000;
+        }
+
+        $fils = (int) round($price * 1000);
+        $key = $product->id . '_' . $fils;
 
         if (isset($this->cart[$key])) {
             $this->cart[$key]['quantity']++;
@@ -49,44 +73,41 @@ class Pos extends Component
                 'id' => $product->id,
                 'name' => $product->name,
                 'code' => $product->code,
-                'price' => (float) $product->price,
+                'price' => $price,
                 'quantity' => 1,
-                'subtotal' => (float) $product->price,
+                'subtotal' => $price,
             ];
         }
 
         $this->autoUpdateExactIfMatched();
     }
 
-    public function increaseQuantity(int $productId): void
+    public function increaseQuantity(string $itemKey): void
     {
-        $key = (string) $productId;
-        if (isset($this->cart[$key])) {
-            $this->cart[$key]['quantity']++;
-            $this->cart[$key]['subtotal'] = round($this->cart[$key]['quantity'] * $this->cart[$key]['price'], 3);
+        if (isset($this->cart[$itemKey])) {
+            $this->cart[$itemKey]['quantity']++;
+            $this->cart[$itemKey]['subtotal'] = round($this->cart[$itemKey]['quantity'] * $this->cart[$itemKey]['price'], 3);
             $this->autoUpdateExactIfMatched();
         }
     }
 
-    public function decreaseQuantity(int $productId): void
+    public function decreaseQuantity(string $itemKey): void
     {
-        $key = (string) $productId;
-        if (isset($this->cart[$key])) {
-            if ($this->cart[$key]['quantity'] > 1) {
-                $this->cart[$key]['quantity']--;
-                $this->cart[$key]['subtotal'] = round($this->cart[$key]['quantity'] * $this->cart[$key]['price'], 3);
+        if (isset($this->cart[$itemKey])) {
+            if ($this->cart[$itemKey]['quantity'] > 1) {
+                $this->cart[$itemKey]['quantity']--;
+                $this->cart[$itemKey]['subtotal'] = round($this->cart[$itemKey]['quantity'] * $this->cart[$itemKey]['price'], 3);
             } else {
-                unset($this->cart[$key]);
+                unset($this->cart[$itemKey]);
             }
             $this->autoUpdateExactIfMatched();
         }
     }
 
-    public function removeFromCart(int $productId): void
+    public function removeFromCart(string $itemKey): void
     {
-        $key = (string) $productId;
-        if (isset($this->cart[$key])) {
-            unset($this->cart[$key]);
+        if (isset($this->cart[$itemKey])) {
+            unset($this->cart[$itemKey]);
             $this->autoUpdateExactIfMatched();
         }
     }
@@ -94,51 +115,73 @@ class Pos extends Component
     public function clearCart(): void
     {
         $this->cart = [];
+        $this->numpadInput = '0.000';
         $this->tenderedInput = '0.000';
+        $this->paymentMethod = null;
         $this->discount = 0.000;
         $this->notify('Cart cleared', 'info');
     }
 
-    // --- Denominations & Numpad ---
+    // --- Tender Cash Multi-Selector & Actions ---
 
     public function setExact(): void
     {
         $total = $this->getTotalProperty();
         $this->tenderedInput = number_format($total, 3, '.', '');
+        if ($this->paymentMethod === null) {
+            $this->paymentMethod = 'CASH';
+        }
     }
 
-    public function addDenomination(float $amount): void
+    public function addTender(float $amount): void
     {
         $current = (float) $this->tenderedInput;
         $newAmount = round($current + $amount, 3);
         $this->tenderedInput = number_format($newAmount, 3, '.', '');
+        $this->paymentMethod = 'CASH';
+    }
+
+    public function clearTender(): void
+    {
+        $this->tenderedInput = '0.000';
     }
 
     public function setDenomination(float $amount): void
     {
-        $this->tenderedInput = number_format($amount, 3, '.', '');
+        $this->addTender($amount);
     }
 
+    public function addDenomination(float $amount): void
+    {
+        $this->addTender($amount);
+    }
+
+    /**
+     * Numpad digit handling starting from most left with up to 3 decimal digits for Kuwaiti Dinar
+     */
     public function numpadInput(string $char): void
     {
-        $val = $this->tenderedInput;
+        $val = $this->numpadInput;
 
         if ($val === '0.000' || $val === '0' || $val === '0.00' || $val === '0.0') {
             if ($char === '.') {
-                $this->tenderedInput = '0.';
+                $this->numpadInput = '0.';
+            } elseif ($char === '00' || $char === '0') {
+                $this->numpadInput = '0';
             } else {
-                $this->tenderedInput = $char;
+                $this->numpadInput = $char;
             }
             return;
         }
 
         if ($char === '.') {
             if (!str_contains($val, '.')) {
-                $this->tenderedInput = $val . '.';
+                $this->numpadInput = $val . '.';
             }
             return;
         }
 
+        // Decimal precision constraint: max 3 decimals for Kuwaiti Dinar (fils)
         if (str_contains($val, '.')) {
             $parts = explode('.', $val);
             if (isset($parts[1]) && strlen($parts[1]) >= 3 && $char !== '') {
@@ -146,31 +189,32 @@ class Pos extends Component
             }
         }
 
-        $this->tenderedInput = $val . $char;
+        $this->numpadInput = $val . $char;
     }
 
     public function numpadBackspace(): void
     {
-        $val = $this->tenderedInput;
+        $val = $this->numpadInput;
         if (strlen($val) <= 1 || $val === '0.000') {
-            $this->tenderedInput = '0.000';
+            $this->numpadInput = '0.000';
         } else {
-            $this->tenderedInput = substr($val, 0, -1);
-            if ($this->tenderedInput === '' || $this->tenderedInput === '0.') {
-                $this->tenderedInput = '0.000';
+            $this->numpadInput = substr($val, 0, -1);
+            if ($this->numpadInput === '' || $this->numpadInput === '0.') {
+                $this->numpadInput = '0.000';
             }
         }
     }
 
     public function numpadClear(): void
     {
-        $this->tenderedInput = '0.000';
+        $this->numpadInput = '0.000';
     }
 
     public function setPaymentMethod(string $method): void
     {
         $this->paymentMethod = $method;
-        if ($method === 'CARD' || $method === 'KNET') {
+
+        if ($method === 'KNET') {
             $this->setExact();
         }
     }
@@ -193,7 +237,9 @@ class Pos extends Component
         ];
 
         $this->cart = [];
+        $this->numpadInput = '0.000';
         $this->tenderedInput = '0.000';
+        $this->paymentMethod = null;
         $this->notify('Order held (' . count($this->heldCarts) . ' in queue)', 'info');
     }
 
@@ -202,11 +248,12 @@ class Pos extends Component
         if (isset($this->heldCarts[$index])) {
             $this->cart = $this->heldCarts[$index]['cart'];
             array_splice($this->heldCarts, $index, 1);
+            $this->paymentMethod = null;
             $this->notify('Held order restored', 'success');
         }
     }
 
-    // --- Direct Checkout without Popup ---
+    // --- Checkout with Payment Guard ---
 
     public function checkout(): void
     {
@@ -215,12 +262,17 @@ class Pos extends Component
             return;
         }
 
+        if (empty($this->paymentMethod)) {
+            $this->notify('Please select Cash or K-Net before checkout', 'error');
+            return;
+        }
+
         $total = $this->getTotalProperty();
         $tendered = (float) $this->tenderedInput;
 
         if ($this->paymentMethod === 'CASH' && $tendered < $total) {
             $shortage = number_format($total - $tendered, 3, '.', '');
-            $this->notify("Tendered is short by {$shortage} KWD", 'error');
+            $this->notify("Cash is short by {$shortage} KWD", 'error');
             return;
         }
 
@@ -261,9 +313,11 @@ class Pos extends Component
 
             DB::commit();
 
-            // Reset cart & inputs immediately without modal popup
+            // Reset cart & inputs immediately
             $this->cart = [];
+            $this->numpadInput = '0.000';
             $this->tenderedInput = '0.000';
+            $this->paymentMethod = null;
             $this->discount = 0.000;
 
             $changeFormatted = number_format($change, 3, '.', '');
@@ -298,7 +352,7 @@ class Pos extends Component
 
     private function autoUpdateExactIfMatched(): void
     {
-        if ($this->paymentMethod !== 'CASH') {
+        if ($this->paymentMethod === 'KNET') {
             $this->setExact();
         }
     }
