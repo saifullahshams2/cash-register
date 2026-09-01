@@ -11,16 +11,19 @@ use Livewire\Component;
 class Pos extends Component
 {
     public string $search = '';
-    
+
     /** @var array<string, array{id: int, name: string, code: string, price: float, quantity: int, subtotal: float}> */
     public array $cart = [];
 
     // Numpad input buffer (for manual price or cash tender)
     public string $numpadInput = '0.000';
+
     public string $tenderedInput = '0.000';
+
     public float $discount = 0.000;
+
     public float $taxRate = 0.000;
-    
+
     // Payment method: null until explicitly clicked ('CASH' or 'KNET')
     public ?string $paymentMethod = null;
 
@@ -29,6 +32,7 @@ class Pos extends Component
 
     // Notification toast
     public ?string $notificationMessage = null;
+
     public string $notificationType = 'success';
 
     public function mount(): void
@@ -45,7 +49,7 @@ class Pos extends Component
     public function addToCart(int $productId, ?float $customPrice = null): void
     {
         $product = Product::find($productId);
-        if (!$product) {
+        if (! $product) {
             return;
         }
 
@@ -63,7 +67,7 @@ class Pos extends Component
         }
 
         $fils = (int) round($price * 1000);
-        $key = $product->id . '_' . $fils;
+        $key = $product->id.'_'.$fils;
 
         if (isset($this->cart[$key])) {
             $this->cart[$key]['quantity']++;
@@ -171,13 +175,15 @@ class Pos extends Component
             } else {
                 $this->numpadInput = $char;
             }
+
             return;
         }
 
         if ($char === '.') {
-            if (!str_contains($val, '.')) {
-                $this->numpadInput = $val . '.';
+            if (! str_contains($val, '.')) {
+                $this->numpadInput = $val.'.';
             }
+
             return;
         }
 
@@ -189,7 +195,7 @@ class Pos extends Component
             }
         }
 
-        $this->numpadInput = $val . $char;
+        $this->numpadInput = $val.$char;
     }
 
     public function numpadBackspace(): void
@@ -225,6 +231,7 @@ class Pos extends Component
     {
         if (empty($this->cart)) {
             $this->notify('Cart is empty', 'error');
+
             return;
         }
 
@@ -240,7 +247,7 @@ class Pos extends Component
         $this->numpadInput = '0.000';
         $this->tenderedInput = '0.000';
         $this->paymentMethod = null;
-        $this->notify('Order held (' . count($this->heldCarts) . ' in queue)', 'info');
+        $this->notify('Order held ('.count($this->heldCarts).' in queue)', 'info');
     }
 
     public function restoreHeldCart(int $index): void
@@ -259,11 +266,13 @@ class Pos extends Component
     {
         if (empty($this->cart)) {
             $this->notify('Please add items to cart first', 'error');
+
             return;
         }
 
         if (empty($this->paymentMethod)) {
             $this->notify('Please select Cash or K-Net before checkout', 'error');
+
             return;
         }
 
@@ -273,6 +282,7 @@ class Pos extends Component
         if ($this->paymentMethod === 'CASH' && $tendered < $total) {
             $shortage = number_format($total - $tendered, 3, '.', '');
             $this->notify("Cash is short by {$shortage} KWD", 'error');
+
             return;
         }
 
@@ -282,7 +292,7 @@ class Pos extends Component
         try {
             DB::beginTransaction();
 
-            $orderNumber = 'INV-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -4));
+            $orderNumber = 'INV-'.date('Ymd').'-'.strtoupper(substr(uniqid(), -4));
 
             $order = Order::create([
                 'order_number' => $orderNumber,
@@ -324,7 +334,7 @@ class Pos extends Component
             $this->notify("Saved {$orderNumber} | Change: {$changeFormatted} KWD", 'success');
         } catch (\Throwable $e) {
             DB::rollBack();
-            $this->notify('Checkout error: ' . $e->getMessage(), 'error');
+            $this->notify('Checkout error: '.$e->getMessage(), 'error');
         }
     }
 
@@ -340,6 +350,7 @@ class Pos extends Component
         $sub = $this->getSubtotalProperty();
         $afterDiscount = max(0, $sub - $this->discount);
         $tax = round($afterDiscount * ($this->taxRate / 100), 3);
+
         return round($afterDiscount + $tax, 3);
     }
 
@@ -347,6 +358,7 @@ class Pos extends Component
     {
         $tendered = (float) $this->tenderedInput;
         $total = $this->getTotalProperty();
+
         return round($tendered - $total, 3);
     }
 
@@ -367,7 +379,7 @@ class Pos extends Component
     {
         $productsQuery = Product::query()->where('is_active', true);
 
-        if (!empty($this->search)) {
+        if (! empty($this->search)) {
             $search = trim($this->search);
             $productsQuery->where('name', 'like', "%{$search}%");
         }

@@ -30,6 +30,6 @@ class Product extends Model
 
     public function getFormattedPriceAttribute(): string
     {
-        return number_format($this->price, 3, '.', '') . ' KWD';
+        return number_format($this->price, 3, '.', '').' KWD';
     }
 }
