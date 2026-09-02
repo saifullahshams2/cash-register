@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Livewire\Pos;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -17,6 +18,10 @@ class PosTest extends TestCase
     {
         parent::setUp();
         $this->seed();
+        $cashier = User::where('role', User::ROLE_CASHIER)->first();
+        if ($cashier) {
+            $this->actingAs($cashier);
+        }
     }
 
     public function test_pos_page_renders_successfully(): void
@@ -29,18 +34,43 @@ class PosTest extends TestCase
         $response->assertSee('3. Change');
         $response->assertSee('1. CASH');
         $response->assertSee('2. K-NET');
+        $response->assertSee('EXACT');
     }
 
-    public function test_can_input_total_price_from_numpad(): void
+    public function test_right_to_left_decimal_shifting_entry(): void
     {
+        // 1. Single digit: 1 -> 0.001
+        Livewire::test(Pos::class)
+            ->call('numpadInput', '1')
+            ->assertSet('totalInput', '0.001')
+            ->assertSet('totalDigits', '1')
+            ->call('numpadClear')
+            ->assertSet('totalInput', '0.000');
+
+        // 2. Three digits: 2, 3, 8 -> 0.238
         Livewire::test(Pos::class)
             ->call('numpadInput', '2')
-            ->call('numpadInput', '.')
+            ->assertSet('totalInput', '0.002')
             ->call('numpadInput', '3')
-            ->call('numpadInput', '5')
-            ->call('numpadInput', '0')
-            ->assertSet('totalInput', '2.350')
-            ->assertSee('2.350');
+            ->assertSet('totalInput', '0.023')
+            ->call('numpadInput', '8')
+            ->assertSet('totalInput', '0.238');
+
+        // 3. Five digits: 1, 1, 2, 3, 4 -> 11.234
+        Livewire::test(Pos::class)
+            ->call('numpadInput', '1')
+            ->call('numpadInput', '1')
+            ->call('numpadInput', '2')
+            ->call('numpadInput', '3')
+            ->call('numpadInput', '4')
+            ->assertSet('totalInput', '11.234')
+            // Backspace shifts right
+            ->call('numpadBackspace')
+            ->assertSet('totalInput', '1.123')
+            ->call('numpadBackspace')
+            ->assertSet('totalInput', '0.112')
+            ->call('numpadClear')
+            ->assertSet('totalInput', '0.000');
     }
 
     public function test_can_add_product_to_cart_with_quantity_only(): void
@@ -61,8 +91,9 @@ class PosTest extends TestCase
         Livewire::test(Pos::class)
             ->call('addToCart', $product->id)
             ->call('numpadInput', '1')
-            ->call('numpadInput', '.')
             ->call('numpadInput', '5')
+            ->call('numpadInput', '0')
+            ->call('numpadInput', '0')
             ->call('checkout')
             ->assertSet('notificationMessage', 'Please select Cash or K-Net before checkout')
             ->assertCount('cart', 1);
@@ -76,14 +107,17 @@ class PosTest extends TestCase
 
         Livewire::test(Pos::class)
             ->call('addToCart', $product->id)
+            // Enter 1.500 KWD (1500 fils)
             ->call('numpadInput', '1')
-            ->call('numpadInput', '.')
             ->call('numpadInput', '5')
+            ->call('numpadInput', '00')
+            ->assertSet('totalInput', '1.500')
             ->call('setPaymentMethod', 'CASH')
             ->call('setDenomination', 5.000)
             ->assertSet('tenderedInput', '5.000')
             ->call('checkout')
             ->assertCount('cart', 0)
+            ->assertSet('totalInput', '0.000')
             ->assertSet('paymentMethod', null);
 
         $this->assertDatabaseHas('orders', [
@@ -101,10 +135,12 @@ class PosTest extends TestCase
 
         Livewire::test(Pos::class)
             ->call('addToCart', $product->id)
+            // Enter 3.250 KWD (3250 fils)
             ->call('numpadInput', '3')
-            ->call('numpadInput', '.')
             ->call('numpadInput', '2')
             ->call('numpadInput', '5')
+            ->call('numpadInput', '0')
+            ->assertSet('totalInput', '3.250')
             ->call('setPaymentMethod', 'KNET')
             ->assertSet('tenderedInput', '3.250')
             ->call('checkout')
@@ -145,7 +181,10 @@ class PosTest extends TestCase
 
         Livewire::test(Pos::class)
             ->call('addToCart', $product->id)
+            // Enter 5.000 KWD
             ->call('numpadInput', '5')
+            ->call('numpadInput', '00')
+            ->call('numpadInput', '0')
             ->call('setPaymentMethod', 'CASH')
             ->call('setDenomination', 3.000)
             ->call('checkout')
@@ -198,12 +237,13 @@ class PosTest extends TestCase
             ->assertSet('notificationMessage', 'Cart is empty')
             ->assertSet('notificationType', 'error');
 
-        // 2. Add product, enter total, hold cart, verify saved in heldCarts
+        // 2. Add product, enter total 4.500, hold cart, verify saved in heldCarts
         $test = Livewire::test(Pos::class)
             ->call('addToCart', $product->id)
             ->call('numpadInput', '4')
-            ->call('numpadInput', '.')
             ->call('numpadInput', '5')
+            ->call('numpadInput', '00')
+            ->assertSet('totalInput', '4.500')
             ->call('holdCart')
             ->assertCount('cart', 0)
             ->assertCount('heldCarts', 1)
@@ -212,7 +252,7 @@ class PosTest extends TestCase
         // 3. Restore cart
         $test->call('restoreHeldCart', 0)
             ->assertCount('cart', 1)
-            ->assertSet('totalInput', '4.5')
+            ->assertSet('totalInput', '4.500')
             ->assertCount('heldCarts', 0);
     }
 
@@ -225,31 +265,13 @@ class PosTest extends TestCase
             ->call('addToCart', $product->id)
             ->call('addToCart', $product->id) // increase quantity to 2
             ->call('numpadInput', '2')
+            ->call('numpadInput', '00')
+            ->call('numpadInput', '0')
             ->call('setPaymentMethod', 'CASH')
             ->call('setExact')
             ->call('checkout');
 
         $this->assertEquals($initialStock - 2, $product->fresh()->stock);
-    }
-
-    public function test_numpad_precision_and_backspace_handling(): void
-    {
-        Livewire::test(Pos::class)
-            // Test 3 decimal limit for KWD fils
-            ->call('numpadInput', '1')
-            ->call('numpadInput', '.')
-            ->call('numpadInput', '2')
-            ->call('numpadInput', '3')
-            ->call('numpadInput', '4')
-            ->call('numpadInput', '5') // Exceeds 3 decimals, should be ignored
-            ->assertSet('totalInput', '1.234')
-            // Test backspace
-            ->call('numpadBackspace')
-            ->assertSet('totalInput', '1.23')
-            ->call('numpadBackspace')
-            ->assertSet('totalInput', '1.2')
-            ->call('numpadClear')
-            ->assertSet('totalInput', '0.000');
     }
 
     public function test_knet_auto_updates_exact_amount_on_total_input_changes(): void
@@ -259,12 +281,13 @@ class PosTest extends TestCase
         Livewire::test(Pos::class)
             ->call('addToCart', $product->id)
             ->call('numpadInput', '2')
+            ->call('numpadInput', '00')
+            ->call('numpadInput', '0') // 2.000
             ->call('setPaymentMethod', 'KNET')
             ->assertSet('tenderedInput', '2.000')
-            ->call('numpadInput', '.')
-            ->call('numpadInput', '5')
-            ->assertSet('tenderedInput', '2.500')
-            ->call('numpadBackspace')
+            ->call('numpadInput', '5') // 20.005
+            ->assertSet('tenderedInput', '20.005')
+            ->call('numpadBackspace') // back to 2.000
             ->assertSet('tenderedInput', '2.000');
     }
 
@@ -284,10 +307,12 @@ class PosTest extends TestCase
 
         Livewire::test(Pos::class)
             ->call('addToCart', $product->id)
+            // Enter 2.750 KWD
             ->call('numpadInput', '2')
-            ->call('numpadInput', '.')
             ->call('numpadInput', '7')
             ->call('numpadInput', '5')
+            ->call('numpadInput', '0')
+            ->assertSet('totalInput', '2.750')
             ->call('setPaymentMethod', 'KNET')
             ->call('checkout');
 

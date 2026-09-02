@@ -74,6 +74,43 @@
                 </div>
             @endif
 
+            <!-- User Info & Role Badge -->
+            @auth
+                <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
+                    @if(Auth::user()->isAdmin())
+                        <span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-300 font-bold uppercase text-[10px]">
+                            Admin
+                        </span>
+                        <a 
+                            href="{{ route('admin.cashiers') }}" 
+                            class="px-2.5 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 rounded-lg transition flex items-center gap-1"
+                            title="Manage Cashier Accounts"
+                        >
+                            <span>⚙️</span>
+                            <span>Cashiers</span>
+                        </a>
+                    @else
+                        <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold uppercase text-[10px]">
+                            Cashier
+                        </span>
+                    @endif
+                    <span class="text-xs font-bold text-slate-800 max-w-[120px] truncate" title="{{ Auth::user()->name }}">
+                        {{ Auth::user()->name }}
+                    </span>
+
+                    <form method="POST" action="{{ route('logout') }}" class="inline">
+                        @csrf
+                        <button 
+                            type="submit" 
+                            class="px-2.5 py-1 text-xs font-semibold bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 rounded-lg transition cursor-pointer"
+                            title="Sign out of terminal"
+                        >
+                            Logout
+                        </button>
+                    </form>
+                </div>
+            @endauth
+
             <div class="text-right pl-3 border-l border-slate-200">
                 <span class="text-xs font-mono text-slate-500">{{ now()->format('d M Y') }}</span>
                 <div class="text-xs font-mono font-bold text-slate-800" x-data="{ time: '' }" x-init="setInterval(() => { time = new Date().toLocaleTimeString('en-GB') }, 1000)" x-text="time"></div>
@@ -198,13 +235,13 @@
                         <button wire:click="addTender(0.250)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 0.250 KWD to Cash">+0.250</button>
                     </div>
 
-                    <!-- EXACT Button -->
-                    <button wire:click="setExact" type="button" class="py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-400 text-emerald-800 font-mono font-bold text-xs transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">
+                    <!-- EXACT Button (Higher / Prominent) -->
+                    <button wire:click="setExact" type="button" class="py-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-400 text-emerald-900 font-mono font-extrabold text-sm tracking-wide transition active:scale-95 flex items-center justify-center shadow-xs cursor-pointer">
                         EXACT
                     </button>
 
                     <!-- Dedicated CLEAR TENDER Button -->
-                    <button wire:click="clearTender" type="button" class="py-2 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 font-mono font-bold text-xs transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">
+                    <button wire:click="clearTender" type="button" class="py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 font-mono font-bold text-xs transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">
                         CLEAR TENDER
                     </button>
                 </div>
@@ -270,7 +307,7 @@
 
         <!-- ============================================================== -->
         <!-- 3. RIGHT COLUMN (30% WIDTH): CART DISPLAY & PRICING IN 1 BOX   -->
-        <!--    TOP HALF: CART ITEMS DISPLAY (ITEMS & QUANTITY ONLY)        -->
+        <!--    TOP HALF: CART ITEMS DISPLAY                                -->
         <!--    BOTTOM HALF: PRICING (1. TOTAL, 2. CASH, 3. CHANGE IN 1 BOX)-->
         <!-- ============================================================== -->
         <section class="w-[30%] h-full flex flex-col bg-white shrink-0">
@@ -282,7 +319,7 @@
                     <div class="flex items-center gap-2">
                         <span class="text-xs font-bold uppercase tracking-wider text-slate-800">Cart Display</span>
                         <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-200 text-slate-800">
-                            {{ count($cart) }} {{ count($cart) === 1 ? 'Item' : 'Items' }} ({{ $totalQuantity }} Total Qty)
+                            {{ count($cart) }} {{ count($cart) === 1 ? 'Item' : 'Items' }}
                         </span>
                     </div>
 
@@ -304,7 +341,7 @@
                     </div>
                 </div>
 
-                <!-- Cart Items List (Quantity only, no per-item price) -->
+                <!-- Cart Items List (Product items without quantity controls) -->
                 <div class="flex-1 overflow-y-auto p-3 space-y-1.5">
                     @forelse($cart as $key => $item)
                         <div 
@@ -316,29 +353,10 @@
                                 <h5 class="text-xs font-bold text-slate-900 truncate">{{ $item['name'] }}</h5>
                             </div>
 
-                            <!-- Quantity Controls -->
-                            <div class="flex items-center gap-1 shrink-0 mx-2">
-                                <button 
-                                    wire:click="decreaseQuantity({{ $key }})"
-                                    class="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 flex items-center justify-center text-xs font-bold transition cursor-pointer"
-                                >
-                                    -
-                                </button>
-                                <span class="w-7 text-center font-mono font-bold text-xs text-slate-900">
-                                    {{ $item['quantity'] }}
-                                </span>
-                                <button 
-                                    wire:click="increaseQuantity({{ $key }})"
-                                    class="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 flex items-center justify-center text-xs font-bold transition cursor-pointer"
-                                >
-                                    +
-                                </button>
-                            </div>
-
                             <!-- Remove Button -->
                             <button 
                                 wire:click="removeFromCart({{ $key }})"
-                                class="text-slate-400 hover:text-rose-600 p-1 transition text-xs font-bold cursor-pointer"
+                                class="text-slate-400 hover:text-rose-600 p-1.5 transition text-xs font-bold cursor-pointer rounded hover:bg-slate-100"
                                 title="Remove"
                             >
                                 ✕

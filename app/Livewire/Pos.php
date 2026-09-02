@@ -16,6 +16,8 @@ class Pos extends Component
     public array $cart = [];
 
     // Numpad input buffer for manual total price
+    public string $totalDigits = '';
+
     public string $totalInput = '0.000';
 
     public string $tenderedInput = '0.000';
@@ -37,6 +39,7 @@ class Pos extends Component
 
     public function mount(): void
     {
+        $this->totalDigits = '';
         $this->totalInput = '0.000';
         $this->tenderedInput = '0.000';
         $this->paymentMethod = null;
@@ -94,6 +97,7 @@ class Pos extends Component
     public function clearCart(): void
     {
         $this->cart = [];
+        $this->totalDigits = '';
         $this->totalInput = '0.000';
         $this->tenderedInput = '0.000';
         $this->paymentMethod = null;
@@ -135,63 +139,58 @@ class Pos extends Component
     }
 
     /**
-     * Numpad digit handling directly updates total price with up to 3 decimal digits for Kuwaiti Dinar
+     * ATM-style right-to-left digit shifting with fixed 3 decimals (fils) for Kuwaiti Dinar
+     * Example: 1 -> 0.001, 238 -> 0.238, 11234 -> 11.234
      */
     public function numpadInput(string $char): void
     {
-        $val = $this->totalInput;
-
-        if ($val === '0.000' || $val === '0' || $val === '0.00' || $val === '0.0') {
-            if ($char === '.') {
-                $this->totalInput = '0.';
-            } elseif ($char === '00' || $char === '0') {
-                $this->totalInput = '0';
-            } else {
-                $this->totalInput = $char;
-            }
-            $this->autoUpdateExactIfMatched();
-
-            return;
-        }
-
         if ($char === '.') {
-            if (! str_contains($val, '.')) {
-                $this->totalInput = $val.'.';
-            }
-            $this->autoUpdateExactIfMatched();
-
             return;
         }
 
-        // Decimal precision constraint: max 3 decimals for Kuwaiti Dinar (fils)
-        if (str_contains($val, '.')) {
-            $parts = explode('.', $val);
-            if (isset($parts[1]) && strlen($parts[1]) >= 3 && $char !== '') {
-                return;
-            }
+        if (! in_array($char, ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '00'], true)) {
+            return;
         }
 
-        $this->totalInput = $val.$char;
-        $this->autoUpdateExactIfMatched();
+        // Ignore leading zeros if buffer is empty
+        if ($this->totalDigits === '' && ($char === '0' || $char === '00')) {
+            return;
+        }
+
+        // Prevent buffer overflow (up to 9 digits: 999,999.999 KWD)
+        if (strlen($this->totalDigits) + strlen($char) > 9) {
+            return;
+        }
+
+        $this->totalDigits .= $char;
+        $this->updateTotalInputFromDigits();
     }
 
     public function numpadBackspace(): void
     {
-        $val = $this->totalInput;
-        if (strlen($val) <= 1 || $val === '0.000') {
-            $this->totalInput = '0.000';
-        } else {
-            $this->totalInput = substr($val, 0, -1);
-            if ($this->totalInput === '' || $this->totalInput === '0.') {
-                $this->totalInput = '0.000';
-            }
+        if (strlen($this->totalDigits) > 0) {
+            $this->totalDigits = substr($this->totalDigits, 0, -1);
         }
-        $this->autoUpdateExactIfMatched();
+
+        $this->updateTotalInputFromDigits();
     }
 
     public function numpadClear(): void
     {
-        $this->totalInput = '0.000';
+        $this->totalDigits = '';
+        $this->updateTotalInputFromDigits();
+    }
+
+    private function updateTotalInputFromDigits(): void
+    {
+        if ($this->totalDigits === '' || (int) $this->totalDigits === 0) {
+            $this->totalDigits = '';
+            $this->totalInput = '0.000';
+        } else {
+            $fils = (int) $this->totalDigits;
+            $this->totalInput = number_format($fils / 1000, 3, '.', '');
+        }
+
         $this->autoUpdateExactIfMatched();
     }
 
@@ -218,12 +217,14 @@ class Pos extends Component
             'id' => uniqid('HOLD-'),
             'time' => now()->format('h:i A'),
             'cart' => $this->cart,
+            'totalDigits' => $this->totalDigits,
             'totalInput' => $this->totalInput,
             'total' => $this->getTotalProperty(),
             'item_count' => count($this->cart),
         ];
 
         $this->cart = [];
+        $this->totalDigits = '';
         $this->totalInput = '0.000';
         $this->tenderedInput = '0.000';
         $this->paymentMethod = null;
@@ -234,6 +235,7 @@ class Pos extends Component
     {
         if (isset($this->heldCarts[$index])) {
             $this->cart = $this->heldCarts[$index]['cart'];
+            $this->totalDigits = $this->heldCarts[$index]['totalDigits'] ?? '';
             $this->totalInput = $this->heldCarts[$index]['totalInput'] ?? '0.000';
             array_splice($this->heldCarts, $index, 1);
             $this->paymentMethod = null;
@@ -305,6 +307,7 @@ class Pos extends Component
 
             // Reset cart & inputs immediately
             $this->cart = [];
+            $this->totalDigits = '';
             $this->totalInput = '0.000';
             $this->tenderedInput = '0.000';
             $this->paymentMethod = null;
@@ -364,7 +367,6 @@ class Pos extends Component
         return view('livewire.pos', [
             'products' => $products,
             'total' => $this->getTotalProperty(),
-            'totalQuantity' => $this->getTotalQuantityProperty(),
             'changeDue' => $this->getChangeDueProperty(),
         ])->layout('components.layouts.app');
     }
