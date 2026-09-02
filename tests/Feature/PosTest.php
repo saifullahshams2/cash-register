@@ -31,26 +31,27 @@ class PosTest extends TestCase
         $response->assertSee('2. K-NET');
     }
 
-    public function test_can_add_product_with_manual_price_from_numpad(): void
+    public function test_can_input_total_price_from_numpad(): void
     {
-        $product = Product::first();
-
-        // 1. Enter manual price 2.350 on numpad
-        // 2. Click product
-        $key = $product->id.'_2350';
-
         Livewire::test(Pos::class)
             ->call('numpadInput', '2')
             ->call('numpadInput', '.')
             ->call('numpadInput', '3')
             ->call('numpadInput', '5')
             ->call('numpadInput', '0')
-            ->assertSet('numpadInput', '2.350')
+            ->assertSet('totalInput', '2.350')
+            ->assertSee('2.350');
+    }
+
+    public function test_can_add_product_to_cart_with_quantity_only(): void
+    {
+        $product = Product::first();
+
+        Livewire::test(Pos::class)
             ->call('addToCart', $product->id)
-            ->assertSet("cart.{$key}.price", 2.350)
-            ->assertSet("cart.{$key}.quantity", 1)
-            ->assertSet("cart.{$key}.subtotal", 2.350)
-            ->assertSet('numpadInput', '0.000');
+            ->assertSet("cart.{$product->id}.id", $product->id)
+            ->assertSet("cart.{$product->id}.quantity", 1)
+            ->assertSet("cart.{$product->id}.name", $product->name);
     }
 
     public function test_cannot_checkout_without_selecting_payment_method(): void
@@ -58,7 +59,10 @@ class PosTest extends TestCase
         $product = Product::first();
 
         Livewire::test(Pos::class)
-            ->call('addToCart', $product->id, 1.500)
+            ->call('addToCart', $product->id)
+            ->call('numpadInput', '1')
+            ->call('numpadInput', '.')
+            ->call('numpadInput', '5')
             ->call('checkout')
             ->assertSet('notificationMessage', 'Please select Cash or K-Net before checkout')
             ->assertCount('cart', 1);
@@ -71,7 +75,10 @@ class PosTest extends TestCase
         $product = Product::first();
 
         Livewire::test(Pos::class)
-            ->call('addToCart', $product->id, 1.500)
+            ->call('addToCart', $product->id)
+            ->call('numpadInput', '1')
+            ->call('numpadInput', '.')
+            ->call('numpadInput', '5')
             ->call('setPaymentMethod', 'CASH')
             ->call('setDenomination', 5.000)
             ->assertSet('tenderedInput', '5.000')
@@ -93,7 +100,11 @@ class PosTest extends TestCase
         $product = Product::first();
 
         Livewire::test(Pos::class)
-            ->call('addToCart', $product->id, 3.250)
+            ->call('addToCart', $product->id)
+            ->call('numpadInput', '3')
+            ->call('numpadInput', '.')
+            ->call('numpadInput', '2')
+            ->call('numpadInput', '5')
             ->call('setPaymentMethod', 'KNET')
             ->assertSet('tenderedInput', '3.250')
             ->call('checkout')
@@ -133,7 +144,8 @@ class PosTest extends TestCase
         $product = Product::first();
 
         Livewire::test(Pos::class)
-            ->call('addToCart', $product->id, 5.000)
+            ->call('addToCart', $product->id)
+            ->call('numpadInput', '5')
             ->call('setPaymentMethod', 'CASH')
             ->call('setDenomination', 3.000)
             ->call('checkout')
@@ -147,37 +159,31 @@ class PosTest extends TestCase
     public function test_cart_quantity_modifications_and_removal(): void
     {
         $product = Product::first();
-        $key = $product->id.'_2000';
 
         Livewire::test(Pos::class)
-            ->call('addToCart', $product->id, 2.000)
-            ->assertSet("cart.{$key}.quantity", 1)
-            ->assertSet("cart.{$key}.subtotal", 2.000)
-            ->call('increaseQuantity', $key)
-            ->assertSet("cart.{$key}.quantity", 2)
-            ->assertSet("cart.{$key}.subtotal", 4.000)
-            ->call('decreaseQuantity', $key)
-            ->assertSet("cart.{$key}.quantity", 1)
-            ->assertSet("cart.{$key}.subtotal", 2.000)
-            ->call('decreaseQuantity', $key)
+            ->call('addToCart', $product->id)
+            ->assertSet("cart.{$product->id}.quantity", 1)
+            ->call('increaseQuantity', $product->id)
+            ->assertSet("cart.{$product->id}.quantity", 2)
+            ->call('decreaseQuantity', $product->id)
+            ->assertSet("cart.{$product->id}.quantity", 1)
+            ->call('decreaseQuantity', $product->id)
             ->assertCount('cart', 0);
     }
 
     public function test_remove_from_cart_and_clear_cart(): void
     {
         $products = Product::take(2)->get();
-        $key1 = $products[0]->id.'_1000';
-        $key2 = $products[1]->id.'_2000';
 
         Livewire::test(Pos::class)
-            ->call('addToCart', $products[0]->id, 1.000)
-            ->call('addToCart', $products[1]->id, 2.000)
+            ->call('addToCart', $products[0]->id)
+            ->call('addToCart', $products[1]->id)
             ->assertCount('cart', 2)
-            ->call('removeFromCart', $key1)
+            ->call('removeFromCart', $products[0]->id)
             ->assertCount('cart', 1)
-            ->assertSet("cart.{$key2}.subtotal", 2.000)
             ->call('clearCart')
             ->assertCount('cart', 0)
+            ->assertSet('totalInput', '0.000')
             ->assertSet('tenderedInput', '0.000')
             ->assertSet('paymentMethod', null);
     }
@@ -192,9 +198,12 @@ class PosTest extends TestCase
             ->assertSet('notificationMessage', 'Cart is empty')
             ->assertSet('notificationType', 'error');
 
-        // 2. Add product, hold cart, verify saved in heldCarts
+        // 2. Add product, enter total, hold cart, verify saved in heldCarts
         $test = Livewire::test(Pos::class)
-            ->call('addToCart', $product->id, 4.500)
+            ->call('addToCart', $product->id)
+            ->call('numpadInput', '4')
+            ->call('numpadInput', '.')
+            ->call('numpadInput', '5')
             ->call('holdCart')
             ->assertCount('cart', 0)
             ->assertCount('heldCarts', 1)
@@ -203,6 +212,7 @@ class PosTest extends TestCase
         // 3. Restore cart
         $test->call('restoreHeldCart', 0)
             ->assertCount('cart', 1)
+            ->assertSet('totalInput', '4.5')
             ->assertCount('heldCarts', 0);
     }
 
@@ -212,8 +222,9 @@ class PosTest extends TestCase
         $initialStock = $product->stock;
 
         Livewire::test(Pos::class)
-            ->call('addToCart', $product->id, 1.000)
-            ->call('addToCart', $product->id, 1.000) // increase quantity to 2
+            ->call('addToCart', $product->id)
+            ->call('addToCart', $product->id) // increase quantity to 2
+            ->call('numpadInput', '2')
             ->call('setPaymentMethod', 'CASH')
             ->call('setExact')
             ->call('checkout');
@@ -231,35 +242,30 @@ class PosTest extends TestCase
             ->call('numpadInput', '3')
             ->call('numpadInput', '4')
             ->call('numpadInput', '5') // Exceeds 3 decimals, should be ignored
-            ->assertSet('numpadInput', '1.234')
+            ->assertSet('totalInput', '1.234')
             // Test backspace
             ->call('numpadBackspace')
-            ->assertSet('numpadInput', '1.23')
+            ->assertSet('totalInput', '1.23')
             ->call('numpadBackspace')
-            ->assertSet('numpadInput', '1.2')
+            ->assertSet('totalInput', '1.2')
             ->call('numpadClear')
-            ->assertSet('numpadInput', '0.000');
+            ->assertSet('totalInput', '0.000');
     }
 
-    public function test_knet_auto_updates_exact_amount_on_cart_changes(): void
+    public function test_knet_auto_updates_exact_amount_on_total_input_changes(): void
     {
-        $products = Product::take(2)->get();
-        $key1 = $products[0]->id.'_2000';
-        $key2 = $products[1]->id.'_3500';
+        $product = Product::first();
 
         Livewire::test(Pos::class)
-            ->call('addToCart', $products[0]->id, 2.000)
+            ->call('addToCart', $product->id)
+            ->call('numpadInput', '2')
             ->call('setPaymentMethod', 'KNET')
             ->assertSet('tenderedInput', '2.000')
-            // Adding another item should automatically sync exact amount for KNET
-            ->call('addToCart', $products[1]->id, 3.500)
-            ->assertSet('tenderedInput', '5.500')
-            // Increasing quantity should auto sync
-            ->call('increaseQuantity', $key1)
-            ->assertSet('tenderedInput', '7.500')
-            // Removing item should auto sync
-            ->call('removeFromCart', $key2)
-            ->assertSet('tenderedInput', '4.000');
+            ->call('numpadInput', '.')
+            ->call('numpadInput', '5')
+            ->assertSet('tenderedInput', '2.500')
+            ->call('numpadBackspace')
+            ->assertSet('tenderedInput', '2.000');
     }
 
     public function test_product_search_filtering(): void
@@ -277,7 +283,11 @@ class PosTest extends TestCase
         $product = Product::first();
 
         Livewire::test(Pos::class)
-            ->call('addToCart', $product->id, 2.750)
+            ->call('addToCart', $product->id)
+            ->call('numpadInput', '2')
+            ->call('numpadInput', '.')
+            ->call('numpadInput', '7')
+            ->call('numpadInput', '5')
             ->call('setPaymentMethod', 'KNET')
             ->call('checkout');
 
@@ -286,7 +296,7 @@ class PosTest extends TestCase
         $this->assertCount(1, $order->items);
         $this->assertEquals($product->id, $order->items->first()->product_id);
         $this->assertEquals($product->name, $order->items->first()->product_name);
-        $this->assertEquals(2.750, (float) $order->items->first()->unit_price);
+        $this->assertEquals(2.750, (float) $order->total);
         $this->assertEquals($order->id, $order->items->first()->order->id);
     }
 }

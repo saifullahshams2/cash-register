@@ -81,7 +81,7 @@
         </div>
     </header>
 
-    <!-- 3-COLUMN MAIN LAYOUT: LEFT (PRODUCTS 20%) | MIDDLE (NUMPAD 40%) | RIGHT (PRICING & CART 40%) -->
+    <!-- 3-COLUMN MAIN LAYOUT: LEFT (PRODUCTS 20%) | MIDDLE (NUMPAD 50%) | RIGHT (PRICING & CART 30%) -->
     <div class="flex-1 flex overflow-hidden w-full h-[calc(100vh-3.5rem)] bg-white">
         
         <!-- ============================================================== -->
@@ -133,32 +133,31 @@
         </aside>
 
         <!-- ============================================================== -->
-        <!-- 2. MIDDLE COLUMN (40% WIDTH): NUMPAD & TENDER WORKSPACE        -->
-        <!--    65% FOR NUMPAD | 35% FOR TENDER CASH MULTI-SELECTOR         -->
+        <!-- 2. MIDDLE COLUMN (50% WIDTH): NUMPAD & TENDER WORKSPACE        -->
         <!-- ============================================================== -->
-        <main class="w-[40%] h-full flex flex-col border-r border-slate-200 bg-white p-3 space-y-2 shrink-0 overflow-y-auto">
+        <main class="w-[50%] h-full flex flex-col border-r border-slate-200 bg-white p-3 space-y-2 shrink-0 overflow-y-auto">
             
-            <!-- A. NUMPAD INPUT DISPLAY -->
+            <!-- A. NUMPAD INPUT DISPLAY (TOTAL PRICE DIRECT ENTRY) -->
             <div class="bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 flex items-center justify-between shadow-2xs shrink-0">
                 <div>
                     <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">
-                        Manual Price Entry
+                        Total Price Entry
                     </span>
                     <span class="text-[10px] text-slate-400">
-                        Type price on numpad, then click product on left
+                        Type total order amount directly on numpad
                     </span>
                 </div>
                 <div class="flex items-center gap-1.5">
-                    <span class="font-mono text-2xl font-bold text-slate-900 tracking-tight">{{ $numpadInput }}</span>
+                    <span class="font-mono text-2xl font-bold text-slate-900 tracking-tight">{{ $totalInput }}</span>
                     <span class="text-xs font-bold text-slate-600">KWD</span>
                 </div>
             </div>
 
-            <!-- B. SPLIT WORKSPACE: 65% NUMPAD | 35% TENDER CASH SECTION -->
-            <div class="flex-1 flex gap-2 min-h-[220px]">
+            <!-- B. SPLIT WORKSPACE: NUMPAD | DIVIDER | TENDER CASH SECTION -->
+            <div class="flex-1 flex items-stretch gap-2.5 min-h-[220px]">
                 
-                <!-- 1. NUMPAD (65% WIDTH, NO +1 OR +5) -->
-                <div class="w-[65%] grid grid-cols-3 gap-1.5 h-full">
+                <!-- 1. NUMPAD (GRID) -->
+                <div class="flex-1 grid grid-cols-3 gap-1.5 h-full">
                     <!-- Row 1 -->
                     <button wire:click="numpadInput('7')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">7</button>
                     <button wire:click="numpadInput('8')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">8</button>
@@ -180,12 +179,15 @@
                     <button wire:click="numpadInput('.')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">.</button>
 
                     <!-- Row 5 -->
-                    <button wire:click="numpadClear" type="button" class="col-span-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-mono font-bold text-xs transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">CLEAR PRICE</button>
+                    <button wire:click="numpadClear" type="button" class="col-span-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-mono font-bold text-xs transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">CLEAR TOTAL</button>
                     <button wire:click="numpadBackspace" type="button" class="rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 font-mono font-bold text-lg transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">⌫</button>
                 </div>
 
-                <!-- 2. TENDER CASH MULTI-SELECTOR (35% WIDTH) -->
-                <div class="w-[35%] flex flex-col gap-1.5 h-full">
+                <!-- Small vertical divider between numpad and tender buttons -->
+                <div class="w-px bg-slate-200 self-stretch my-0.5 rounded-full shrink-0"></div>
+
+                <!-- 2. TENDER CASH MULTI-SELECTOR -->
+                <div class="w-[36%] flex flex-col gap-1.5 h-full">
                     <!-- Denomination Multi-Selector Buttons (Cumulative addition) -->
                     <div class="grid grid-cols-2 gap-1.5 flex-1">
                         <button wire:click="addTender(20.000)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 20 KWD to Cash">+20</button>
@@ -267,11 +269,11 @@
         </main>
 
         <!-- ============================================================== -->
-        <!-- 3. RIGHT COLUMN (40% WIDTH): CART DISPLAY & PRICING IN 1 BOX   -->
-        <!--    TOP HALF: CART ITEMS DISPLAY                                -->
+        <!-- 3. RIGHT COLUMN (30% WIDTH): CART DISPLAY & PRICING IN 1 BOX   -->
+        <!--    TOP HALF: CART ITEMS DISPLAY (ITEMS & QUANTITY ONLY)        -->
         <!--    BOTTOM HALF: PRICING (1. TOTAL, 2. CASH, 3. CHANGE IN 1 BOX)-->
         <!-- ============================================================== -->
-        <section class="w-[40%] h-full flex flex-col bg-white shrink-0">
+        <section class="w-[30%] h-full flex flex-col bg-white shrink-0">
             
             <!-- TOP HALF: CART DISPLAY -->
             <div class="flex-[1.2] flex flex-col border-b border-slate-200 overflow-hidden bg-white">
@@ -280,7 +282,7 @@
                     <div class="flex items-center gap-2">
                         <span class="text-xs font-bold uppercase tracking-wider text-slate-800">Cart Display</span>
                         <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-200 text-slate-800">
-                            {{ count($cart) }} {{ count($cart) === 1 ? 'Item' : 'Items' }}
+                            {{ count($cart) }} {{ count($cart) === 1 ? 'Item' : 'Items' }} ({{ $totalQuantity }} Total Qty)
                         </span>
                     </div>
 
@@ -302,25 +304,22 @@
                     </div>
                 </div>
 
-                <!-- Cart Items List -->
+                <!-- Cart Items List (Quantity only, no per-item price) -->
                 <div class="flex-1 overflow-y-auto p-3 space-y-1.5">
                     @forelse($cart as $key => $item)
                         <div 
                             wire:key="cart-item-{{ $key }}"
                             class="flex items-center justify-between p-2.5 rounded-lg bg-white border border-slate-200 shadow-2xs hover:border-slate-300 transition"
                         >
-                            <!-- Product Name & Unit Price -->
+                            <!-- Product Name -->
                             <div class="min-w-0 flex-1 pr-2">
-                                <h5 class="text-xs font-semibold text-slate-900 truncate">{{ $item['name'] }}</h5>
-                                <span class="text-[11px] font-mono text-slate-500">
-                                    {{ number_format($item['price'], 3) }} KWD
-                                </span>
+                                <h5 class="text-xs font-bold text-slate-900 truncate">{{ $item['name'] }}</h5>
                             </div>
 
                             <!-- Quantity Controls -->
                             <div class="flex items-center gap-1 shrink-0 mx-2">
                                 <button 
-                                    wire:click="decreaseQuantity('{{ $key }}')"
+                                    wire:click="decreaseQuantity({{ $key }})"
                                     class="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 flex items-center justify-center text-xs font-bold transition cursor-pointer"
                                 >
                                     -
@@ -329,25 +328,17 @@
                                     {{ $item['quantity'] }}
                                 </span>
                                 <button 
-                                    wire:click="increaseQuantity('{{ $key }}')"
+                                    wire:click="increaseQuantity({{ $key }})"
                                     class="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 flex items-center justify-center text-xs font-bold transition cursor-pointer"
                                 >
                                     +
                                 </button>
                             </div>
 
-                            <!-- Subtotal in KWD (3 decimals) -->
-                            <div class="text-right shrink-0 w-24">
-                                <span class="font-mono font-bold text-xs text-slate-900 block">
-                                    {{ number_format($item['subtotal'], 3) }}
-                                </span>
-                                <span class="text-[9px] font-semibold text-slate-500">KWD</span>
-                            </div>
-
                             <!-- Remove Button -->
                             <button 
-                                wire:click="removeFromCart('{{ $key }}')"
-                                class="ml-2 text-slate-400 hover:text-rose-600 p-1 transition text-xs font-bold cursor-pointer"
+                                wire:click="removeFromCart({{ $key }})"
+                                class="text-slate-400 hover:text-rose-600 p-1 transition text-xs font-bold cursor-pointer"
                                 title="Remove"
                             >
                                 ✕
@@ -355,7 +346,7 @@
                         </div>
                     @empty
                         <div class="h-full flex flex-col items-center justify-center text-slate-400 py-8">
-                            <p class="text-xs text-center">Cart is empty.<br><span class="text-[11px] text-slate-400">Type price on numpad, then click product on left.</span></p>
+                            <p class="text-xs text-center">Cart is empty.<br><span class="text-[11px] text-slate-400">Click products on the left to add items.</span></p>
                         </div>
                     @endforelse
                 </div>
@@ -371,7 +362,7 @@
                     <div class="p-3 bg-slate-900 text-white flex items-center justify-between">
                         <div>
                             <span class="text-[11px] font-bold uppercase tracking-wider text-slate-300 block">1. Total</span>
-                            <span class="text-[10px] text-slate-400">Final Order Amount</span>
+                            <span class="text-[10px] text-slate-400">Direct Numpad Total</span>
                         </div>
                         <div class="text-right">
                             <span class="font-mono font-extrabold text-2xl text-white block leading-tight">
