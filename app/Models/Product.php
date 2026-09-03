@@ -28,6 +28,24 @@ class Product extends Model
         'is_active' => 'boolean',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (Product $product) {
+            if (empty($product->code)) {
+                $product->code = 'PRD-'.strtoupper(substr(uniqid(), -6));
+            }
+            if (empty($product->category)) {
+                $product->category = 'General';
+            }
+            if (is_null($product->price)) {
+                $product->price = 0.000;
+            }
+            if (is_null($product->stock)) {
+                $product->stock = 9999;
+            }
+        });
+    }
+
     public function getFormattedPriceAttribute(): string
     {
         return number_format($this->price, 3, '.', '').' KWD';

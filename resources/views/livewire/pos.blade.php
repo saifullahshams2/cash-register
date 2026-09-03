@@ -27,12 +27,20 @@
     <!-- TOP STATUS & APP BAR -->
     <header class="h-14 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0 z-20 shadow-xs">
         <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-sm tracking-wider">
-                KW
-            </div>
+            @php
+                $siteLogo = \App\Models\Setting::get('site_logo');
+                $siteTitle = \App\Models\Setting::get('site_title', 'CASH REGISTER');
+            @endphp
+            @if($siteLogo)
+                <img src="{{ $siteLogo }}" alt="Logo" class="w-8 h-8 rounded-lg object-contain border border-slate-200 p-0.5 bg-white shadow-2xs">
+            @else
+                <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-sm tracking-wider">
+                    KW
+                </div>
+            @endif
             <div>
                 <h1 class="font-bold text-sm tracking-tight text-slate-900 flex items-center gap-2">
-                    CASH REGISTER
+                    {{ $siteTitle }}
                     <span class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-300">
                         KWD (3 Decimals)
                     </span>
@@ -77,23 +85,9 @@
             <!-- User Info & Role Badge -->
             @auth
                 <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
-                    @if(Auth::user()->isAdmin())
-                        <span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-300 font-bold uppercase text-[10px]">
-                            Admin
-                        </span>
-                        <a 
-                            href="{{ route('admin.cashiers') }}" 
-                            class="px-2.5 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 rounded-lg transition flex items-center gap-1"
-                            title="Manage Cashier Accounts"
-                        >
-                            <span>⚙️</span>
-                            <span>Cashiers</span>
-                        </a>
-                    @else
-                        <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold uppercase text-[10px]">
-                            Cashier
-                        </span>
-                    @endif
+                    <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold uppercase text-[10px]">
+                        Cashier
+                    </span>
                     <span class="text-xs font-bold text-slate-800 max-w-[120px] truncate" title="{{ Auth::user()->name }}">
                         {{ Auth::user()->name }}
                     </span>

@@ -49,24 +49,29 @@ class AuthTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('CASH REGISTER');
         $response->assertSee('Cashier 01');
-        $response->assertDontSee('⚙️ Manage Cashiers');
+
+        $posResponse = $this->get('/pos');
+        $posResponse->assertStatus(200);
+        $posResponse->assertSee('CASH REGISTER');
+        $posResponse->assertSee('Cashier 01');
     }
 
-    public function test_admin_can_login_and_access_pos_with_admin_button(): void
+    public function test_admin_can_login_and_is_redirected_to_admin_dashboard(): void
     {
         Livewire::test(Login::class)
             ->set('username', 'admin')
             ->set('password', 'password')
             ->call('login')
-            ->assertRedirect(route('pos'));
+            ->assertRedirect(route('admin.dashboard'));
 
         $this->assertAuthenticated();
         $this->assertEquals(User::ROLE_ADMIN, auth()->user()->role);
 
         $response = $this->get('/');
-        $response->assertStatus(200);
-        $response->assertSee('Admin User');
-        $response->assertSee('Cashiers');
+        $response->assertRedirect(route('admin.dashboard'));
+
+        $posResponse = $this->get('/pos');
+        $posResponse->assertRedirect(route('admin.dashboard'));
     }
 
     public function test_invalid_login_credentials_fail(): void
@@ -90,10 +95,9 @@ class AuthTest extends TestCase
     public function test_admin_can_access_admin_cashier_management(): void
     {
         $admin = User::where('role', User::ROLE_ADMIN)->first();
-        $response = $this->actingAs($admin)->get('/admin/cashiers');
+        $response = $this->actingAs($admin)->get('/admin/dashboard');
         $response->assertStatus(200);
-        $response->assertSee('ADMIN PANEL: USER MANAGEMENT');
-        $response->assertSee('Create New User');
+        $response->assertSee('ADMIN DASHBOARD');
     }
 
     public function test_admin_can_create_new_cashier_account(): void

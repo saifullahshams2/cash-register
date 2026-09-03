@@ -33,6 +33,10 @@ class Login extends Component
 
         session()->regenerate();
 
+        if (Auth::user()->isAdmin()) {
+            return redirect()->intended(route('admin.dashboard'));
+        }
+
         return redirect()->intended(route('pos'));
     }
 

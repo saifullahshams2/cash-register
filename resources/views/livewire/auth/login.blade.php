@@ -2,10 +2,18 @@
     <div class="w-full max-w-md">
         <!-- Logo & Header -->
         <div class="text-center mb-6">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-slate-900 text-white font-bold text-lg mb-3 shadow-sm">
-                KW
-            </div>
-            <h1 class="text-xl font-bold text-slate-900 tracking-tight">CASH REGISTER TERMINAL</h1>
+            @php
+                $siteLogo = \App\Models\Setting::get('site_logo');
+                $siteTitle = \App\Models\Setting::get('site_title', 'CASH REGISTER TERMINAL');
+            @endphp
+            @if($siteLogo)
+                <img src="{{ $siteLogo }}" alt="Logo" class="inline-block w-12 h-12 object-contain rounded-xl border border-slate-200 p-0.5 bg-white mb-3 shadow-sm">
+            @else
+                <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-slate-900 text-white font-bold text-lg mb-3 shadow-sm">
+                    KW
+                </div>
+            @endif
+            <h1 class="text-xl font-bold text-slate-900 tracking-tight">{{ $siteTitle }}</h1>
             <p class="text-xs text-slate-500 mt-1">Sign in with your Admin or Cashier account</p>
         </div>
 

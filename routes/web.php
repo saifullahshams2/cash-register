@@ -1,6 +1,6 @@
 <?php
 
-use App\Livewire\Admin\Cashiers;
+use App\Livewire\Admin\Dashboard;
 use App\Livewire\Auth\Login;
 use App\Livewire\Pos;
 use Illuminate\Support\Facades\Auth;
@@ -11,9 +11,11 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', Login::class)->name('login');
 });
 
-// Authenticated Routes (Admin & Cashier)
+// Authenticated Routes
 Route::middleware('auth')->group(function () {
-    Route::get('/', Pos::class)->name('pos');
+    // Cashier Only Routes (Admin cannot use POS, redirected to admin.dashboard)
+    Route::get('/', Pos::class)->middleware('cashier');
+    Route::get('/pos', Pos::class)->middleware('cashier')->name('pos');
 
     Route::post('/logout', function () {
         Auth::logout();
@@ -25,6 +27,13 @@ Route::middleware('auth')->group(function () {
 
     // Admin Only Routes
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
-        Route::get('/cashiers', Cashiers::class)->name('cashiers');
+        Route::get('/', Dashboard::class)->name('dashboard');
+        Route::get('/dashboard', Dashboard::class);
+        Route::get('/cashiers', function () {
+            return redirect()->route('admin.dashboard', ['tab' => 'users']);
+        })->name('cashiers');
+        Route::get('/products', function () {
+            return redirect()->route('admin.dashboard', ['tab' => 'products']);
+        })->name('products');
     });
 });

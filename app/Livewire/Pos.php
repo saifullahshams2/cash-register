@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
@@ -37,8 +38,12 @@ class Pos extends Component
 
     public string $notificationType = 'success';
 
-    public function mount(): void
+    public function mount()
     {
+        if (Auth::check() && Auth::user()->isAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
+
         $this->totalDigits = '';
         $this->totalInput = '0.000';
         $this->tenderedInput = '0.000';
