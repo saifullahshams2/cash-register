@@ -17,9 +17,10 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Default Admin User
-        User::firstOrCreate(
+        User::updateOrCreate(
             ['email' => 'admin@pos.test'],
             [
+                'username' => 'admin',
                 'name' => 'Admin User',
                 'password' => Hash::make('password'),
                 'role' => User::ROLE_ADMIN,
@@ -28,9 +29,10 @@ class DatabaseSeeder extends Seeder
         );
 
         // Default Cashier User
-        User::firstOrCreate(
+        User::updateOrCreate(
             ['email' => 'cashier@pos.test'],
             [
+                'username' => 'cashier',
                 'name' => 'Cashier 01',
                 'password' => Hash::make('password'),
                 'role' => User::ROLE_CASHIER,

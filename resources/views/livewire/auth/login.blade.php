@@ -12,21 +12,21 @@
         <!-- Login Card -->
         <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-5">
             <form wire:submit="login" class="space-y-4">
-                <!-- Email Input -->
+                <!-- Username Input -->
                 <div>
-                    <label for="email" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                        Email Address
+                    <label for="username" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                        Username
                     </label>
                     <input 
-                        wire:model="email" 
-                        type="email" 
-                        id="email" 
-                        placeholder="e.g. cashier@pos.test"
+                        wire:model="username" 
+                        type="text" 
+                        id="username" 
+                        placeholder="e.g. admin, cashier, or any character"
                         required
                         autofocus
                         class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition font-mono"
                     >
-                    @error('email')
+                    @error('username')
                         <p class="text-xs text-rose-600 font-semibold mt-1.5">{{ $message }}</p>
                     @enderror
                 </div>
@@ -85,19 +85,19 @@
                 <div class="grid grid-cols-2 gap-2">
                     <button 
                         type="button"
-                        wire:click="$set('email', 'admin@pos.test'); $set('password', 'password');"
+                        wire:click="$set('username', 'admin'); $set('password', 'password');"
                         class="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left cursor-pointer transition"
                     >
                         <div class="font-bold text-slate-800">Admin Account</div>
-                        <div class="text-[10px] text-slate-500 font-mono truncate">admin@pos.test</div>
+                        <div class="text-[10px] text-slate-500 font-mono truncate">admin</div>
                     </button>
                     <button 
                         type="button"
-                        wire:click="$set('email', 'cashier@pos.test'); $set('password', 'password');"
+                        wire:click="$set('username', 'cashier'); $set('password', 'password');"
                         class="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left cursor-pointer transition"
                     >
                         <div class="font-bold text-slate-800">Cashier Account</div>
-                        <div class="text-[10px] text-slate-500 font-mono truncate">cashier@pos.test</div>
+                        <div class="text-[10px] text-slate-500 font-mono truncate">cashier</div>
                     </button>
                 </div>
             </div>

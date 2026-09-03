@@ -13,8 +13,11 @@ class Cashiers extends Component
     #[Rule('required|string|max:255')]
     public string $name = '';
 
-    #[Rule('required|email|max:255|unique:users,email')]
-    public string $email = '';
+    #[Rule('required|string|max:255|unique:users,username')]
+    public string $username = '';
+
+    #[Rule('required|string|in:admin,cashier')]
+    public string $role = User::ROLE_CASHIER;
 
     #[Rule('required|string|min:6|confirmed')]
     public string $password = '';
@@ -25,29 +28,38 @@ class Cashiers extends Component
 
     public ?string $errorMessage = null;
 
-    public function createCashier(): void
+    public function createUser(): void
     {
         $this->validate();
 
         try {
+            $userRole = in_array($this->role, [User::ROLE_ADMIN, User::ROLE_CASHIER], true) ? $this->role : User::ROLE_CASHIER;
+
             User::create([
                 'name' => trim($this->name),
-                'email' => strtolower(trim($this->email)),
+                'username' => trim($this->username),
                 'password' => Hash::make($this->password),
-                'role' => User::ROLE_CASHIER,
+                'role' => $userRole,
                 'email_verified_at' => now(),
             ]);
 
-            $this->reset(['name', 'email', 'password', 'password_confirmation']);
-            $this->successMessage = 'Cashier account created successfully!';
+            $roleLabel = ucfirst($userRole);
+            $this->reset(['name', 'username', 'role', 'password', 'password_confirmation']);
+            $this->role = User::ROLE_CASHIER;
+            $this->successMessage = "{$roleLabel} account created successfully!";
             $this->errorMessage = null;
         } catch (\Throwable $e) {
-            $this->errorMessage = 'Failed to create cashier: '.$e->getMessage();
+            $this->errorMessage = 'Failed to create user: '.$e->getMessage();
             $this->successMessage = null;
         }
     }
 
-    public function deleteCashier(int $userId): void
+    public function createCashier(): void
+    {
+        $this->createUser();
+    }
+
+    public function deleteUser(int $userId): void
     {
         if (Auth::id() === $userId) {
             $this->errorMessage = 'You cannot delete your own logged-in admin account.';
@@ -58,10 +70,16 @@ class Cashiers extends Component
 
         $user = User::find($userId);
         if ($user) {
+            $userIdentifier = $user->username ?: ($user->email ?: $user->name);
             $user->delete();
-            $this->successMessage = "Account {$user->name} ({$user->email}) deleted successfully.";
+            $this->successMessage = "Account {$user->name} ({$userIdentifier}) deleted successfully.";
             $this->errorMessage = null;
         }
+    }
+
+    public function deleteCashier(int $userId): void
+    {
+        $this->deleteUser($userId);
     }
 
     public function render()

@@ -16,7 +16,7 @@ class ExampleTest extends TestCase
     {
         $this->seed();
 
-        $response = $this->get('/');
+        $response = $this->get('/login');
 
         $response->assertStatus(200);
     }
