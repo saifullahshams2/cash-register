@@ -219,7 +219,7 @@
                 @if(!empty($logoBase64))
                     <img src="{{ $logoBase64 }}" class="logo-img" alt="Logo">
                 @else
-                    <div class="logo-placeholder">KW</div>
+                    <div class="logo-placeholder">POS</div>
                 @endif
             </td>
             <td style="padding-left: 12px;">
@@ -324,7 +324,7 @@
     </table>
 
     <div class="footer">
-        {{ $companyName }} &bull; Kuwait Cash Register POS &bull; Confirmed &amp; Certified Sales Report
+        {{ $companyName }} &bull; Cash Register POS &bull; Confirmed &amp; Certified Sales Report
     </div>
 
 </body>

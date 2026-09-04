@@ -8,7 +8,7 @@
                     <img src="{{ $currentLogo }}" alt="Logo" class="w-8 h-8 sm:w-9 sm:h-9 object-contain rounded-xl border border-slate-200 p-0.5 bg-white shadow-2xs shrink-0">
                 @else
                     <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs sm:text-sm tracking-wider shadow-xs shrink-0">
-                        KW
+                        POS
                     </div>
                 @endif
                 <div class="min-w-0">
@@ -731,7 +731,7 @@
                             wire:model="companyName" 
                             type="text" 
                             id="companyName" 
-                            placeholder="e.g. Al-Bustan Cafe, My Store Kuwait"
+                            placeholder="e.g. Downtown Cafe, My Store"
                             required
                             class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition font-sans"
                         >

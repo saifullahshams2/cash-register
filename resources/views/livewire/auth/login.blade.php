@@ -10,7 +10,7 @@
                 <img src="{{ $siteLogo }}" alt="Logo" class="inline-block w-12 h-12 object-contain rounded-xl border border-slate-200 p-0.5 bg-white mb-3 shadow-sm">
             @else
                 <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-slate-900 text-white font-bold text-lg mb-3 shadow-sm">
-                    KW
+                    POS
                 </div>
             @endif
             <h1 class="text-xl font-bold text-slate-900 tracking-tight">{{ $siteTitle }}</h1>
@@ -78,31 +78,6 @@
                     <span wire:loading>Signing In...</span>
                 </button>
             </form>
-
-            <!-- Quick Demo Accounts Helper Box -->
-            <div class="pt-4 border-t border-slate-100 text-[11px] text-slate-500 space-y-2">
-                <div class="font-semibold text-slate-700 flex items-center justify-between">
-                    <span>Default Accounts (password: <code class="bg-slate-100 px-1 py-0.5 rounded font-mono">password</code>):</span>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <button 
-                        type="button"
-                        wire:click="fillAdminCredentials"
-                        class="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left cursor-pointer transition"
-                    >
-                        <div class="font-bold text-slate-800">Admin Account</div>
-                        <div class="text-[10px] text-slate-500 font-mono truncate">admin</div>
-                    </button>
-                    <button 
-                        type="button"
-                        wire:click="fillCashierCredentials"
-                        class="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left cursor-pointer transition"
-                    >
-                        <div class="font-bold text-slate-800">Cashier Account</div>
-                        <div class="text-[10px] text-slate-500 font-mono truncate">cashier</div>
-                    </button>
-                </div>
-            </div>
         </div>
     </div>
 </div>

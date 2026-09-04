@@ -182,19 +182,19 @@ class AdminDashboardTest extends TestCase
 
         Livewire::test(Dashboard::class)
             ->set('tab', 'settings')
-            ->set('companyName', 'Al-Bustan Cafe Kuwait')
-            ->set('siteTitle', 'Coffee House Kuwait')
+            ->set('companyName', 'Downtown Cafe')
+            ->set('siteTitle', 'Coffee House')
             ->call('saveSettings')
             ->assertSet('successMessage', 'Website settings updated successfully!');
 
-        $this->assertEquals('Al-Bustan Cafe Kuwait', Setting::get('company_name'));
-        $this->assertEquals('Coffee House Kuwait', Setting::get('site_title'));
+        $this->assertEquals('Downtown Cafe', Setting::get('company_name'));
+        $this->assertEquals('Coffee House', Setting::get('site_title'));
     }
 
     public function test_admin_can_export_sales_report_as_a4_pdf(): void
     {
         $admin = User::where('role', User::ROLE_ADMIN)->first();
-        Setting::set('company_name', 'Kuwait Flagship Store');
+        Setting::set('company_name', 'Downtown Flagship Store');
 
         Order::create([
             'order_number' => 'INV-20260904-001',
@@ -218,7 +218,7 @@ class AdminDashboardTest extends TestCase
     public function test_admin_can_export_sales_report_as_xlsx(): void
     {
         $admin = User::where('role', User::ROLE_ADMIN)->first();
-        Setting::set('company_name', 'Kuwait Flagship Store');
+        Setting::set('company_name', 'Downtown Flagship Store');
 
         Order::create([
             'order_number' => 'INV-20260904-002',

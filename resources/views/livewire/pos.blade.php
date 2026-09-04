@@ -36,14 +36,14 @@
                 <img src="{{ $siteLogo }}" alt="Logo" class="w-8 h-8 rounded-lg object-contain border border-slate-200 p-0.5 bg-white shadow-2xs shrink-0">
             @else
                 <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-sm tracking-wider shrink-0">
-                    KW
+                    POS
                 </div>
             @endif
             <div class="min-w-0">
                 <h1 class="font-bold text-xs sm:text-sm tracking-tight text-slate-900 flex items-center gap-1.5 truncate">
                     <span class="truncate">{{ $siteTitle }}</span>
                     <span class="hidden sm:inline-block text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-300 shrink-0">
-                        KWD (3 Decimals)
+                        Active
                     </span>
                 </h1>
                 <p class="text-[10px] sm:text-[11px] text-slate-500 hidden sm:block">Terminal 01</p>
@@ -297,14 +297,14 @@
                     @endif
                 </button>
 
-                <!-- 2. K-NET BUTTON -->
+                <!-- 2. CARD BUTTON -->
                 <button 
                     wire:click="setPaymentMethod('KNET')"
                     type="button"
                     class="py-3 px-4 rounded-xl border-2 font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer shadow-xs {{ $paymentMethod === 'KNET' ? 'bg-slate-900 border-slate-900 text-white ring-2 ring-slate-900/30' : 'bg-white border-slate-300 text-slate-800 hover:border-slate-500 hover:bg-slate-50' }}"
                 >
                     <span class="text-base sm:text-lg">💳</span>
-                    <span>2. K-NET</span>
+                    <span>2. CARD</span>
                     @if($paymentMethod === 'KNET')
                         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                     @endif
@@ -319,7 +319,7 @@
                         disabled
                         class="w-full py-3.5 rounded-xl bg-slate-200 text-slate-400 font-bold text-xs sm:text-sm tracking-wider uppercase border border-slate-300 cursor-not-allowed flex items-center justify-center gap-2 shadow-2xs"
                     >
-                        <span>🔒 Select Cash or K-Net to Checkout</span>
+                        <span>🔒 Select Cash or Card to Checkout</span>
                     </button>
                 @else
                     <button 

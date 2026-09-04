@@ -111,7 +111,7 @@ class SalesExcelExporter
 
     protected function buildSheetXml(Collection $orders, array $meta): string
     {
-        $companyName = htmlspecialchars($meta['companyName'] ?: 'Kuwait Store POS', ENT_XML1, 'UTF-8');
+        $companyName = htmlspecialchars($meta['companyName'] ?: 'Store POS', ENT_XML1, 'UTF-8');
         $fromDate = Carbon::parse($meta['fromDate'])->format('d M Y');
         $toDate = Carbon::parse($meta['toDate'])->format('d M Y');
         $dateRangeText = ($fromDate === $toDate) ? $fromDate : "{$fromDate} to {$toDate}";

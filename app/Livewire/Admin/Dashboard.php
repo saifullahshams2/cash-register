@@ -93,7 +93,7 @@ class Dashboard extends Component
             $this->tab = 'analytics';
         }
 
-        $this->companyName = Setting::get('company_name', 'Kuwait Store POS');
+        $this->companyName = Setting::get('company_name', 'Store POS');
         $this->siteTitle = Setting::get('site_title', 'CASH REGISTER');
         $this->currentLogo = Setting::get('site_logo');
         $this->currentFavicon = Setting::get('site_favicon');

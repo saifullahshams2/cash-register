@@ -36,7 +36,7 @@ class ExportController extends Controller
         $knetRevenue = (float) $orders->where('payment_method', 'KNET')->sum('total');
         $count = $orders->count();
 
-        $companyName = Setting::get('company_name', 'Kuwait Store POS');
+        $companyName = Setting::get('company_name', 'Store POS');
         $siteLogo = Setting::get('site_logo');
 
         // Convert logo to base64 for reliable DomPDF local rendering
@@ -100,7 +100,7 @@ class ExportController extends Controller
             ->get();
 
         $meta = [
-            'companyName' => Setting::get('company_name', 'Kuwait Store POS'),
+            'companyName' => Setting::get('company_name', 'Store POS'),
             'fromDate' => $from,
             'toDate' => $to,
             'revenue' => (float) $orders->sum('total'),

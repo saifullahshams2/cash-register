@@ -31,17 +31,18 @@ class AuthTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Sign In to Terminal');
         $response->assertSee('Username');
+        $response->assertSee('https://cdn.tailwindcss.com');
+        $response->assertSee('POS');
+        $response->assertDontSee('KW');
     }
 
-    public function test_login_autofill_credential_helpers(): void
+    public function test_login_page_does_not_display_default_demo_accounts(): void
     {
-        Livewire::test(Login::class)
-            ->call('fillAdminCredentials')
-            ->assertSet('username', 'admin')
-            ->assertSet('password', 'password')
-            ->call('fillCashierCredentials')
-            ->assertSet('username', 'cashier')
-            ->assertSet('password', 'password');
+        $response = $this->get('/login');
+        $response->assertStatus(200);
+        $response->assertDontSee('Default Accounts');
+        $response->assertDontSee('fillAdminCredentials');
+        $response->assertDontSee('fillCashierCredentials');
     }
 
     public function test_cashier_can_login_and_access_pos(): void

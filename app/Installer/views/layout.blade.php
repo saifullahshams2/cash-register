@@ -16,7 +16,7 @@
         <!-- Logo / Title -->
         <div class="text-center mb-6">
             <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-900 text-white font-extrabold text-xl mb-3 shadow-md">
-                KW
+                POS
             </div>
             <h1 class="text-2xl font-black text-slate-900 tracking-tight">CASH REGISTER POS</h1>
             <p class="text-xs font-medium text-slate-500 mt-1">Production Setup &amp; Installation Wizard</p>
@@ -25,7 +25,7 @@
         @yield('content')
 
         <p class="text-center text-xs text-slate-400 mt-6">
-            Cash Register POS &bull; Built for High Reliability &bull; Kuwait POS System
+            Cash Register POS &bull; Built for High Reliability
         </p>
     </div>
 

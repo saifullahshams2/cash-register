@@ -144,7 +144,7 @@ class Pos extends Component
     }
 
     /**
-     * ATM-style right-to-left digit shifting with fixed 3 decimals (fils) for Kuwaiti Dinar
+     * ATM-style right-to-left digit shifting with fixed 3 decimals
      * Example: 1 -> 0.001, 238 -> 0.238, 11234 -> 11.234
      */
     public function numpadInput(string $char): void

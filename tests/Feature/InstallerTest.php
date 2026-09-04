@@ -42,7 +42,7 @@ class InstallerTest extends TestCase
     {
         $payload = [
             'db_connection' => 'sqlite',
-            'company_name' => 'Kuwait Tech Store',
+            'company_name' => 'Metro Tech Store',
             'site_title' => 'TECH STORE POS',
             'app_url' => 'http://localhost:8000',
             'app_env' => 'production',
@@ -70,7 +70,7 @@ class InstallerTest extends TestCase
         $this->assertEquals(0, User::where('role', User::ROLE_CASHIER)->count());
 
         // Verify Store settings saved
-        $this->assertEquals('Kuwait Tech Store', Setting::get('company_name'));
+        $this->assertEquals('Metro Tech Store', Setting::get('company_name'));
         $this->assertEquals('TECH STORE POS', Setting::get('site_title'));
 
         // Verify lockfile created

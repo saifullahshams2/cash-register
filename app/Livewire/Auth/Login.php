@@ -40,18 +40,6 @@ class Login extends Component
         return redirect()->intended(route('pos'));
     }
 
-    public function fillAdminCredentials(): void
-    {
-        $this->username = 'admin';
-        $this->password = 'password';
-    }
-
-    public function fillCashierCredentials(): void
-    {
-        $this->username = 'cashier';
-        $this->password = 'password';
-    }
-
     public function render()
     {
         return view('livewire.auth.login')->layout('components.layouts.app');
