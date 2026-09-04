@@ -1,4 +1,4 @@
-<div class="min-h-screen w-screen flex items-center justify-center bg-slate-100 p-4 font-sans text-slate-900">
+<div class="min-h-dvh w-full flex items-center justify-center bg-slate-100 p-4 sm:p-6 font-sans text-slate-900">
     <div class="w-full max-w-md">
         <!-- Logo & Header -->
         <div class="text-center mb-6">
@@ -90,7 +90,7 @@
                 <div class="font-semibold text-slate-700 flex items-center justify-between">
                     <span>Default Accounts (password: <code class="bg-slate-100 px-1 py-0.5 rounded font-mono">password</code>):</span>
                 </div>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button 
                         type="button"
                         wire:click="$set('username', 'admin'); $set('password', 'password');"

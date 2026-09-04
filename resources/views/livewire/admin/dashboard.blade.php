@@ -1,50 +1,69 @@
-<div class="flex flex-col min-h-screen w-screen bg-slate-100 font-sans text-slate-900 overflow-y-auto">
-    <!-- Header with Centered Menu -->
-    <header class="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 shadow-2xs sticky top-0 z-30">
-        <!-- Left: Branding -->
-        <div class="flex items-center gap-3 w-1/4">
-            @if($currentLogo)
-                <img src="{{ $currentLogo }}" alt="Logo" class="w-9 h-9 object-contain rounded-xl border border-slate-200 p-0.5 bg-white shadow-2xs">
-            @else
-                <div class="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-sm tracking-wider shadow-xs">
-                    KW
+<div class="flex flex-col min-h-dvh w-full bg-slate-100 font-sans text-slate-900 overflow-y-auto">
+    <!-- Header with Responsive Menu -->
+    <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-2.5 sm:py-0 sm:h-16 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 shadow-2xs sticky top-0 z-30">
+        <!-- Top Bar on Mobile / Left on Desktop: Branding & Right Action on Mobile -->
+        <div class="flex items-center justify-between sm:justify-start gap-3 sm:w-1/4">
+            <div class="flex items-center gap-2.5">
+                @if($currentLogo)
+                    <img src="{{ $currentLogo }}" alt="Logo" class="w-8 h-8 sm:w-9 sm:h-9 object-contain rounded-xl border border-slate-200 p-0.5 bg-white shadow-2xs shrink-0">
+                @else
+                    <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs sm:text-sm tracking-wider shadow-xs shrink-0">
+                        KW
+                    </div>
+                @endif
+                <div class="min-w-0">
+                    <h1 class="font-extrabold text-xs sm:text-sm tracking-tight text-slate-900 uppercase truncate max-w-[140px] sm:max-w-[180px]">
+                        {{ $siteTitle ?: 'ADMIN DASHBOARD' }}
+                    </h1>
+                    <p class="text-[9px] sm:text-[10px] text-slate-500 font-semibold tracking-wider uppercase">ADMIN DASHBOARD</p>
                 </div>
-            @endif
-            <div>
-                <h1 class="font-extrabold text-sm tracking-tight text-slate-900 uppercase truncate max-w-[180px]">
-                    {{ $siteTitle ?: 'ADMIN DASHBOARD' }}
-                </h1>
-                <p class="text-[10px] text-slate-500 font-semibold tracking-wider uppercase">ADMIN DASHBOARD</p>
+            </div>
+
+            <!-- Mobile Only Profile & Logout -->
+            <div class="flex sm:hidden items-center gap-2">
+                <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full {{ Auth::user()->isAdmin() ? 'bg-purple-600' : 'bg-emerald-500' }} shrink-0" title="{{ Auth::user()->isAdmin() ? 'Admin' : 'Cashier' }}"></span>
+                    <span class="font-bold text-slate-800 text-xs truncate max-w-[100px]">{{ Auth::user()->name }}</span>
+                </div>
+                <form method="POST" action="{{ route('logout') }}" class="inline">
+                    @csrf
+                    <button 
+                        type="submit" 
+                        class="px-2.5 py-1 text-xs font-bold bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 rounded-lg transition cursor-pointer shadow-2xs"
+                    >
+                        Logout
+                    </button>
+                </form>
             </div>
         </div>
 
-        <!-- Middle: Navigation Menu (Centered) -->
-        <div class="flex items-center justify-center flex-1">
-            <nav class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
+        <!-- Middle: Navigation Menu (Scrollable on mobile, Centered on desktop) -->
+        <div class="flex items-center justify-start sm:justify-center overflow-x-auto no-scrollbar py-0.5 sm:py-0 sm:flex-1">
+            <nav class="flex items-center gap-1 sm:gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold shrink-0">
                 <button 
                     wire:click="setTab('analytics')" 
-                    class="px-3.5 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 {{ $tab === 'analytics' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}"
+                    class="px-2.5 sm:px-3.5 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1 sm:gap-1.5 shrink-0 {{ $tab === 'analytics' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}"
                 >
                     <span>📊</span>
                     <span>Analytics</span>
                 </button>
                 <button 
                     wire:click="setTab('products')" 
-                    class="px-3.5 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 {{ $tab === 'products' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}"
+                    class="px-2.5 sm:px-3.5 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1 sm:gap-1.5 shrink-0 {{ $tab === 'products' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}"
                 >
                     <span>📦</span>
                     <span>Products</span>
                 </button>
                 <button 
                     wire:click="setTab('users')" 
-                    class="px-3.5 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 {{ $tab === 'users' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}"
+                    class="px-2.5 sm:px-3.5 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1 sm:gap-1.5 shrink-0 {{ $tab === 'users' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}"
                 >
                     <span>👥</span>
                     <span>Users</span>
                 </button>
                 <button 
                     wire:click="setTab('settings')" 
-                    class="px-3.5 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 {{ $tab === 'settings' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}"
+                    class="px-2.5 sm:px-3.5 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1 sm:gap-1.5 shrink-0 {{ $tab === 'settings' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}"
                 >
                     <span>⚙️</span>
                     <span>Settings</span>
@@ -52,14 +71,11 @@
             </nav>
         </div>
 
-        <!-- Right: Admin Profile & Logout -->
-        <div class="flex items-center justify-end gap-3 w-1/4">
-            <div class="flex items-center gap-2 text-xs bg-purple-50 border border-purple-200 px-3 py-1.5 rounded-xl">
-                <span class="px-2 py-0.5 rounded bg-purple-600 text-white font-bold uppercase text-[10px]">
-                    Admin
-                </span>
+        <!-- Desktop Right: Admin Profile & Logout -->
+        <div class="hidden sm:flex items-center justify-end gap-3 sm:w-1/4">
+            <div class="flex items-center gap-2 text-xs bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+                <span class="w-2.5 h-2.5 rounded-full {{ Auth::user()->isAdmin() ? 'bg-purple-600' : 'bg-emerald-500' }} shrink-0" title="{{ Auth::user()->isAdmin() ? 'Admin' : 'Cashier' }}"></span>
                 <span class="font-bold text-slate-800">{{ Auth::user()->name }}</span>
-                <span class="font-mono text-[11px] text-slate-500">({{ Auth::user()->username }})</span>
             </div>
 
             <form method="POST" action="{{ route('logout') }}" class="inline">
@@ -75,7 +91,7 @@
     </header>
 
     <!-- Main Content Body -->
-    <main class="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6">
+    <main class="flex-1 p-3.5 sm:p-6 max-w-7xl mx-auto w-full space-y-6">
         
         <!-- Alerts Banner -->
         @if ($successMessage)
@@ -113,10 +129,10 @@
         @if ($tab === 'analytics')
             <div class="space-y-6">
                 <!-- TOP ROW: 30% Left (Sales Summary with centered content) | 70% Right (Calendar Date Sales) -->
-                <div class="grid grid-cols-1 md:grid-cols-10 gap-6 items-stretch">
+                <div class="grid grid-cols-1 lg:grid-cols-10 gap-6 items-stretch">
                     
                     <!-- 30% LEFT: Sales Summary with content centered in the middle -->
-                    <div class="md:col-span-3 bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden flex flex-col justify-between">
+                    <div class="lg:col-span-3 bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden flex flex-col justify-between">
                         <div class="px-5 py-3.5 bg-slate-50 border-b border-slate-100 text-center">
                             <h2 class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center justify-center gap-1.5">
                                 <span>⚡</span> Sales Summary
@@ -164,7 +180,7 @@
                     </div>
 
                     <!-- 70% RIGHT: Calendar Date Sales (From / To Date Picker & Period Summary Badges) -->
-                    <div class="md:col-span-7 bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-4">
+                    <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-4">
                         <div class="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <div>
                                 <h3 class="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
@@ -286,7 +302,7 @@
                     </div>
 
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
+                        <table class="w-full text-left border-collapse min-w-[600px]">
                             <thead>
                                 <tr class="border-b border-slate-200 bg-slate-50 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
                                     <th class="py-3 px-4">Order #</th>
@@ -420,7 +436,7 @@
                     </div>
 
                     <div class="flex-1 overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
+                        <table class="w-full text-left border-collapse min-w-[450px]">
                             <thead>
                                 <tr class="border-b border-slate-200 bg-slate-50 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
                                     <th class="py-3 px-4 w-12 text-slate-400">#</th>
@@ -612,7 +628,7 @@
                     </div>
 
                     <div class="flex-1 overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
+                        <table class="w-full text-left border-collapse min-w-[450px]">
                             <thead>
                                 <tr class="border-b border-slate-200 bg-slate-50 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
                                     <th class="py-3 px-4">User</th>
@@ -708,7 +724,7 @@
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
                             Website Logo
                         </label>
-                        <div class="flex items-center gap-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                             <!-- Preview Box -->
                             <div class="w-16 h-16 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
                                 @if ($siteLogo)
@@ -720,12 +736,12 @@
                                 @endif
                             </div>
 
-                            <div class="flex-1 space-y-2">
+                            <div class="flex-1 space-y-2 min-w-0">
                                 <input 
                                     wire:model="siteLogo" 
                                     type="file" 
                                     accept="image/*"
-                                    class="text-xs text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-900 file:text-white hover:file:bg-slate-800 cursor-pointer"
+                                    class="text-xs text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-900 file:text-white hover:file:bg-slate-800 cursor-pointer max-w-full"
                                 >
                                 <p class="text-[10px] text-slate-400">PNG, JPG, SVG, WebP up to 2MB.</p>
                                 @if ($currentLogo)
@@ -749,7 +765,7 @@
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
                             Browser Favicon
                         </label>
-                        <div class="flex items-center gap-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                             <!-- Preview Box -->
                             <div class="w-12 h-12 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
                                 @if ($siteFavicon)
@@ -761,12 +777,12 @@
                                 @endif
                             </div>
 
-                            <div class="flex-1 space-y-2">
+                            <div class="flex-1 space-y-2 min-w-0">
                                 <input 
                                     wire:model="siteFavicon" 
                                     type="file" 
                                     accept="image/x-icon,image/png,image/svg+xml"
-                                    class="text-xs text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-900 file:text-white hover:file:bg-slate-800 cursor-pointer"
+                                    class="text-xs text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-900 file:text-white hover:file:bg-slate-800 cursor-pointer max-w-full"
                                 >
                                 <p class="text-[10px] text-slate-400">ICO, PNG, or SVG icon up to 1MB.</p>
                                 @if ($currentFavicon)
@@ -789,7 +805,7 @@
                     <div class="pt-4 border-t border-slate-100 flex justify-end">
                         <button 
                             type="submit" 
-                            class="py-2.5 px-6 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition active:scale-98 flex items-center gap-2 cursor-pointer"
+                            class="w-full sm:w-auto py-2.5 px-6 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
                         >
                             <span wire:loading.remove wire:target="saveSettings">Save Settings</span>
                             <span wire:loading wire:target="saveSettings" class="flex items-center gap-1.5">

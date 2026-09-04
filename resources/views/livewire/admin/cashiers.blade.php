@@ -1,28 +1,26 @@
-<div class="flex flex-col min-h-screen w-screen bg-slate-100 font-sans text-slate-900">
+<div class="flex flex-col min-h-dvh w-full bg-slate-100 font-sans text-slate-900">
     <!-- Header -->
-    <header class="h-14 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 shadow-2xs">
-        <div class="flex items-center gap-4">
+    <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-2.5 sm:py-0 sm:h-14 flex items-center justify-between flex-wrap sm:flex-nowrap gap-2.5 shrink-0 shadow-2xs">
+        <div class="flex items-center gap-3">
             <a 
                 href="{{ route('pos') }}" 
-                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs font-bold text-slate-800 transition"
+                class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs font-bold text-slate-800 transition shrink-0"
             >
                 <span>←</span>
-                <span>Back to POS</span>
+                <span>POS</span>
             </a>
-            <div class="h-5 w-px bg-slate-300"></div>
+            <div class="h-5 w-px bg-slate-300 hidden sm:block"></div>
             <div>
-                <h1 class="font-bold text-sm tracking-tight text-slate-900 flex items-center gap-2">
-                    ADMIN PANEL: USER MANAGEMENT
+                <h1 class="font-bold text-xs sm:text-sm tracking-tight text-slate-900 truncate max-w-[200px] sm:max-w-none">
+                    USER MANAGEMENT
                 </h1>
             </div>
         </div>
 
-        <div class="flex items-center gap-3">
-            <div class="flex items-center gap-2 text-xs">
-                <span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-300 font-bold uppercase text-[10px]">
-                    Admin
-                </span>
-                <span class="font-semibold text-slate-700">{{ Auth::user()->name }}</span>
+        <div class="flex items-center gap-2 sm:gap-3">
+            <div class="flex items-center gap-1.5 sm:gap-2 text-xs">
+                <span class="w-2.5 h-2.5 rounded-full {{ Auth::user()->isAdmin() ? 'bg-purple-600' : 'bg-emerald-500' }} shrink-0" title="{{ Auth::user()->isAdmin() ? 'Admin' : 'Cashier' }}"></span>
+                <span class="font-bold text-slate-800 text-xs truncate max-w-[120px] sm:max-w-none">{{ Auth::user()->name }}</span>
             </div>
 
             <form method="POST" action="{{ route('logout') }}" class="inline">
@@ -38,7 +36,7 @@
     </header>
 
     <!-- Main Content Body -->
-    <main class="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6">
+    <main class="flex-1 p-3.5 sm:p-6 max-w-7xl mx-auto w-full space-y-6">
         
         <!-- Alerts Banner -->
         @if ($successMessage)
@@ -216,7 +214,7 @@
                 </div>
 
                 <div class="flex-1 overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
+                    <table class="w-full text-left border-collapse min-w-[450px]">
                         <thead>
                             <tr class="border-b border-slate-200 bg-slate-50 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
                                 <th class="py-3 px-4">User</th>

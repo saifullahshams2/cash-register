@@ -1,5 +1,6 @@
 <div 
     x-data="{
+        mobileTab: 'register',
         init() {
             window.addEventListener('keydown', (e) => {
                 // Focus search on '/'
@@ -22,30 +23,30 @@
             });
         }
     }"
-    class="flex flex-col h-screen w-screen overflow-hidden bg-white text-slate-900 font-sans"
+    class="flex flex-col h-dvh w-full overflow-hidden bg-white text-slate-900 font-sans"
 >
     <!-- TOP STATUS & APP BAR -->
-    <header class="h-14 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0 z-20 shadow-xs">
-        <div class="flex items-center gap-3">
+    <header class="h-14 bg-white border-b border-slate-200 px-3 sm:px-4 flex items-center justify-between shrink-0 z-20 shadow-xs">
+        <div class="flex items-center gap-2 sm:gap-3 min-w-0">
             @php
                 $siteLogo = \App\Models\Setting::get('site_logo');
                 $siteTitle = \App\Models\Setting::get('site_title', 'CASH REGISTER');
             @endphp
             @if($siteLogo)
-                <img src="{{ $siteLogo }}" alt="Logo" class="w-8 h-8 rounded-lg object-contain border border-slate-200 p-0.5 bg-white shadow-2xs">
+                <img src="{{ $siteLogo }}" alt="Logo" class="w-8 h-8 rounded-lg object-contain border border-slate-200 p-0.5 bg-white shadow-2xs shrink-0">
             @else
-                <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-sm tracking-wider">
+                <div class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-sm tracking-wider shrink-0">
                     KW
                 </div>
             @endif
-            <div>
-                <h1 class="font-bold text-sm tracking-tight text-slate-900 flex items-center gap-2">
-                    {{ $siteTitle }}
-                    <span class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-300">
+            <div class="min-w-0">
+                <h1 class="font-bold text-xs sm:text-sm tracking-tight text-slate-900 flex items-center gap-1.5 truncate">
+                    <span class="truncate">{{ $siteTitle }}</span>
+                    <span class="hidden sm:inline-block text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-300 shrink-0">
                         KWD (3 Decimals)
                     </span>
                 </h1>
-                <p class="text-[11px] text-slate-500">Terminal 01</p>
+                <p class="text-[10px] sm:text-[11px] text-slate-500 hidden sm:block">Terminal 01</p>
             </div>
         </div>
 
@@ -59,36 +60,36 @@
                 x-transition:enter-start="opacity-0 -translate-y-1"
                 x-transition:enter-end="opacity-100 translate-y-0"
                 x-transition:leave="transition ease-in duration-150"
-                class="px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 border shadow-sm {{ $notificationType === 'error' ? 'bg-rose-50 border-rose-200 text-rose-800' : ($notificationType === 'info' ? 'bg-sky-50 border-sky-200 text-sky-800' : 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold') }}"
+                class="px-3 sm:px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-2 border shadow-sm {{ $notificationType === 'error' ? 'bg-rose-50 border-rose-200 text-rose-800' : ($notificationType === 'info' ? 'bg-sky-50 border-sky-200 text-sky-800' : 'bg-emerald-50 border-emerald-300 text-emerald-900 font-bold') }}"
             >
                 <span>{{ $notificationMessage }}</span>
             </div>
         @endif
 
         <!-- Header Right Actions -->
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
             @if(count($heldCarts) > 0)
-                <div class="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1">
-                    <span class="text-xs font-semibold text-amber-800">Held ({{ count($heldCarts) }}):</span>
-                    @foreach($heldCarts as $index => $held)
-                        <button 
-                            wire:click="restoreHeldCart({{ $index }})"
-                            class="px-2 py-0.5 text-[11px] bg-amber-500 hover:bg-amber-600 text-white font-bold rounded transition cursor-pointer"
-                            title="Restore Order {{ $held['time'] }}"
-                        >
-                            #{{ $index + 1 }}
-                        </button>
-                    @endforeach
+                <div class="flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-lg px-2 sm:px-2.5 py-1">
+                    <span class="text-[10px] sm:text-xs font-semibold text-amber-800">Held ({{ count($heldCarts) }}):</span>
+                    <div class="flex items-center gap-1">
+                        @foreach($heldCarts as $index => $held)
+                            <button 
+                                wire:click="restoreHeldCart({{ $index }})"
+                                class="px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] bg-amber-500 hover:bg-amber-600 text-white font-bold rounded transition cursor-pointer"
+                                title="Restore Order {{ $held['time'] }}"
+                            >
+                                #{{ $index + 1 }}
+                            </button>
+                        @endforeach
+                    </div>
                 </div>
             @endif
 
-            <!-- User Info & Role Badge -->
+            <!-- User Info & Role Dot -->
             @auth
-                <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
-                    <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold uppercase text-[10px]">
-                        Cashier
-                    </span>
-                    <span class="text-xs font-bold text-slate-800 max-w-[120px] truncate" title="{{ Auth::user()->name }}">
+                <div class="flex items-center gap-1.5 sm:gap-2 pl-2 border-l border-slate-200">
+                    <span class="w-2.5 h-2.5 rounded-full {{ Auth::user()->isAdmin() ? 'bg-purple-600' : 'bg-emerald-500' }} shrink-0" title="{{ Auth::user()->isAdmin() ? 'Admin' : 'Cashier' }}"></span>
+                    <span class="text-xs font-bold text-slate-800 max-w-[80px] sm:max-w-[120px] truncate" title="{{ Auth::user()->name }}">
                         {{ Auth::user()->name }}
                     </span>
 
@@ -96,7 +97,7 @@
                         @csrf
                         <button 
                             type="submit" 
-                            class="px-2.5 py-1 text-xs font-semibold bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 rounded-lg transition cursor-pointer"
+                            class="px-2 sm:px-2.5 py-1 text-xs font-semibold bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 rounded-lg transition cursor-pointer"
                             title="Sign out of terminal"
                         >
                             Logout
@@ -105,21 +106,60 @@
                 </div>
             @endauth
 
-            <div class="text-right pl-3 border-l border-slate-200">
+            <div class="hidden md:block text-right pl-3 border-l border-slate-200">
                 <span class="text-xs font-mono text-slate-500">{{ now()->format('d M Y') }}</span>
                 <div class="text-xs font-mono font-bold text-slate-800" x-data="{ time: '' }" x-init="setInterval(() => { time = new Date().toLocaleTimeString('en-GB') }, 1000)" x-text="time"></div>
             </div>
         </div>
     </header>
 
-    <!-- 3-COLUMN MAIN LAYOUT: LEFT (PRODUCTS 20%) | MIDDLE (NUMPAD 50%) | RIGHT (PRICING & CART 30%) -->
-    <div class="flex-1 flex overflow-hidden w-full h-[calc(100vh-3.5rem)] bg-white">
+    <!-- MOBILE VIEW SWITCHER (< md) -->
+    <div class="md:hidden flex items-center border-b border-slate-200 bg-slate-50 p-1.5 gap-1.5 shrink-0 z-10">
+        <button 
+            type="button" 
+            @click="mobileTab = 'products'"
+            :class="mobileTab === 'products' ? 'bg-white text-slate-900 shadow-xs border-slate-300' : 'text-slate-600 border-transparent hover:text-slate-900'"
+            class="flex-1 py-1.5 px-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 border transition cursor-pointer"
+        >
+            <span>🛍️</span>
+            <span>Products</span>
+            <span class="text-[10px] font-mono font-normal opacity-70">({{ count($products) }})</span>
+        </button>
+        <button 
+            type="button" 
+            @click="mobileTab = 'register'"
+            :class="mobileTab === 'register' ? 'bg-white text-slate-900 shadow-xs border-slate-300' : 'text-slate-600 border-transparent hover:text-slate-900'"
+            class="flex-1 py-1.5 px-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 border transition cursor-pointer"
+        >
+            <span>🔢</span>
+            <span>Register</span>
+            @if($total > 0)
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            @endif
+        </button>
+        <button 
+            type="button" 
+            @click="mobileTab = 'cart'"
+            :class="mobileTab === 'cart' ? 'bg-white text-slate-900 shadow-xs border-slate-300' : 'text-slate-600 border-transparent hover:text-slate-900'"
+            class="flex-1 py-1.5 px-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 border transition cursor-pointer relative"
+        >
+            <span>🛒</span>
+            <span>Cart</span>
+            @if(count($cart) > 0)
+                <span class="px-1.5 py-0.2 rounded-full bg-emerald-600 text-white text-[10px] font-bold font-mono">
+                    {{ count($cart) }}
+                </span>
+            @endif
+        </button>
+    </div>
+
+    <!-- MAIN LAYOUT: DESKTOP 3-COLUMNS | TABLET ADAPTABLE | MOBILE TABBED -->
+    <div class="flex-1 flex overflow-hidden w-full h-[calc(100dvh-3.5rem)] md:h-[calc(100vh-3.5rem)] bg-white relative">
         
         <!-- ============================================================== -->
-        <!-- 1. LEFT COLUMN (20% WIDTH): PRODUCTS LIST                      -->
-        <!--    PRICELESS LIST (ENTER PRICE VIA NUMPAD THEN CLICK ITEM)     -->
+        <!-- 1. LEFT COLUMN: PRODUCTS LIST                                 -->
         <!-- ============================================================== -->
-        <aside class="w-[20%] h-full flex flex-col border-r border-slate-200 bg-white shrink-0">
+        <aside :class="mobileTab === 'products' ? 'flex' : 'hidden md:flex'" class="w-full md:w-[24%] lg:w-[20%] h-full flex-col border-r border-slate-200 bg-white shrink-0">
             <!-- Search Header -->
             <div class="p-3 border-b border-slate-200 bg-slate-50/70 shrink-0">
                 <div class="relative">
@@ -164,9 +204,9 @@
         </aside>
 
         <!-- ============================================================== -->
-        <!-- 2. MIDDLE COLUMN (50% WIDTH): NUMPAD & TENDER WORKSPACE        -->
+        <!-- 2. MIDDLE COLUMN: NUMPAD & TENDER WORKSPACE                    -->
         <!-- ============================================================== -->
-        <main class="w-[50%] h-full flex flex-col border-r border-slate-200 bg-white p-3 space-y-2 shrink-0 overflow-y-auto">
+        <main :class="mobileTab === 'register' ? 'flex' : 'hidden md:flex'" class="w-full md:w-[46%] lg:w-[50%] h-full flex-col border-r border-slate-200 bg-white p-2.5 sm:p-3 space-y-2 shrink-0 overflow-y-auto">
             
             <!-- A. NUMPAD INPUT DISPLAY (TOTAL PRICE DIRECT ENTRY) -->
             <div class="bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 flex items-center justify-between shadow-2xs shrink-0">
@@ -179,8 +219,8 @@
                     </span>
                 </div>
                 <div class="flex items-center gap-1.5">
-                    <span class="font-mono text-2xl font-bold text-slate-900 tracking-tight">{{ $totalInput }}</span>
-                    <span class="text-xs font-bold text-slate-600">KWD</span>
+                    <span class="font-mono text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">{{ $totalInput }}</span>
+                    <span class="text-xs sm:text-sm font-bold text-slate-600">KWD</span>
                 </div>
             </div>
 
@@ -190,28 +230,28 @@
                 <!-- 1. NUMPAD (GRID) -->
                 <div class="flex-1 grid grid-cols-3 gap-1.5 h-full">
                     <!-- Row 1 -->
-                    <button wire:click="numpadInput('7')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">7</button>
-                    <button wire:click="numpadInput('8')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">8</button>
-                    <button wire:click="numpadInput('9')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">9</button>
+                    <button wire:click="numpadInput('7')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">7</button>
+                    <button wire:click="numpadInput('8')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">8</button>
+                    <button wire:click="numpadInput('9')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">9</button>
 
                     <!-- Row 2 -->
-                    <button wire:click="numpadInput('4')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">4</button>
-                    <button wire:click="numpadInput('5')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">5</button>
-                    <button wire:click="numpadInput('6')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">6</button>
+                    <button wire:click="numpadInput('4')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">4</button>
+                    <button wire:click="numpadInput('5')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">5</button>
+                    <button wire:click="numpadInput('6')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">6</button>
 
                     <!-- Row 3 -->
-                    <button wire:click="numpadInput('1')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">1</button>
-                    <button wire:click="numpadInput('2')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">2</button>
-                    <button wire:click="numpadInput('3')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">3</button>
+                    <button wire:click="numpadInput('1')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">1</button>
+                    <button wire:click="numpadInput('2')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">2</button>
+                    <button wire:click="numpadInput('3')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">3</button>
 
                     <!-- Row 4 -->
-                    <button wire:click="numpadInput('0')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">0</button>
-                    <button wire:click="numpadInput('00')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-sm text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">00</button>
-                    <button wire:click="numpadInput('.')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">.</button>
+                    <button wire:click="numpadInput('00')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-lg sm:text-xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">00</button>
+                    <button wire:click="numpadInput('0')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">0</button>
+                    <button wire:click="numpadInput('.')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-3xl sm:text-4xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">.</button>
 
                     <!-- Row 5 -->
-                    <button wire:click="numpadClear" type="button" class="col-span-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-mono font-bold text-xs transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">CLEAR TOTAL</button>
-                    <button wire:click="numpadBackspace" type="button" class="rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 font-mono font-bold text-lg transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">⌫</button>
+                    <button wire:click="numpadClear" type="button" class="col-span-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-mono font-bold text-xs sm:text-sm tracking-wide transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">CLEAR TOTAL</button>
+                    <button wire:click="numpadBackspace" type="button" class="rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 font-mono font-bold text-xl sm:text-2xl transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">⌫</button>
                 </div>
 
                 <!-- Small vertical divider between numpad and tender buttons -->
@@ -221,21 +261,21 @@
                 <div class="w-[36%] flex flex-col gap-1.5 h-full">
                     <!-- Denomination Multi-Selector Buttons (Cumulative addition) -->
                     <div class="grid grid-cols-2 gap-1.5 flex-1">
-                        <button wire:click="addTender(20.000)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 20 KWD to Cash">+20</button>
-                        <button wire:click="addTender(10.000)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 10 KWD to Cash">+10</button>
-                        <button wire:click="addTender(5.000)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 5 KWD to Cash">+5</button>
-                        <button wire:click="addTender(1.000)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 1 KWD to Cash">+1</button>
-                        <button wire:click="addTender(0.500)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 0.500 KWD to Cash">+0.500</button>
-                        <button wire:click="addTender(0.250)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 0.250 KWD to Cash">+0.250</button>
+                        <button wire:click="addTender(20.000)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs sm:text-sm text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 20 KWD to Cash">+20</button>
+                        <button wire:click="addTender(10.000)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs sm:text-sm text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 10 KWD to Cash">+10</button>
+                        <button wire:click="addTender(5.000)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs sm:text-sm text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 5 KWD to Cash">+5</button>
+                        <button wire:click="addTender(1.000)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs sm:text-sm text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 1 KWD to Cash">+1</button>
+                        <button wire:click="addTender(0.500)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs sm:text-sm text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 0.500 KWD to Cash">+0.500</button>
+                        <button wire:click="addTender(0.250)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs sm:text-sm text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 0.250 KWD to Cash">+0.250</button>
                     </div>
 
                     <!-- EXACT Button (Higher / Prominent) -->
-                    <button wire:click="setExact" type="button" class="py-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-400 text-emerald-900 font-mono font-extrabold text-sm tracking-wide transition active:scale-95 flex items-center justify-center shadow-xs cursor-pointer">
+                    <button wire:click="setExact" type="button" class="py-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-400 text-emerald-900 font-mono font-black text-sm sm:text-base tracking-wider transition active:scale-95 flex items-center justify-center shadow-xs cursor-pointer">
                         EXACT
                     </button>
 
                     <!-- Dedicated CLEAR TENDER Button -->
-                    <button wire:click="clearTender" type="button" class="py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 font-mono font-bold text-xs transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">
+                    <button wire:click="clearTender" type="button" class="py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 font-mono font-bold text-xs sm:text-sm tracking-wide transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">
                         CLEAR TENDER
                     </button>
                 </div>
@@ -248,9 +288,9 @@
                 <button 
                     wire:click="setPaymentMethod('CASH')"
                     type="button"
-                    class="py-3 px-4 rounded-xl border-2 font-bold text-sm flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer shadow-xs {{ $paymentMethod === 'CASH' ? 'bg-slate-900 border-slate-900 text-white ring-2 ring-slate-900/30' : 'bg-white border-slate-300 text-slate-800 hover:border-slate-500 hover:bg-slate-50' }}"
+                    class="py-3 px-4 rounded-xl border-2 font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer shadow-xs {{ $paymentMethod === 'CASH' ? 'bg-slate-900 border-slate-900 text-white ring-2 ring-slate-900/30' : 'bg-white border-slate-300 text-slate-800 hover:border-slate-500 hover:bg-slate-50' }}"
                 >
-                    <span class="text-base">💵</span>
+                    <span class="text-base sm:text-lg">💵</span>
                     <span>1. CASH</span>
                     @if($paymentMethod === 'CASH')
                         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -261,9 +301,9 @@
                 <button 
                     wire:click="setPaymentMethod('KNET')"
                     type="button"
-                    class="py-3 px-4 rounded-xl border-2 font-bold text-sm flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer shadow-xs {{ $paymentMethod === 'KNET' ? 'bg-slate-900 border-slate-900 text-white ring-2 ring-slate-900/30' : 'bg-white border-slate-300 text-slate-800 hover:border-slate-500 hover:bg-slate-50' }}"
+                    class="py-3 px-4 rounded-xl border-2 font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer shadow-xs {{ $paymentMethod === 'KNET' ? 'bg-slate-900 border-slate-900 text-white ring-2 ring-slate-900/30' : 'bg-white border-slate-300 text-slate-800 hover:border-slate-500 hover:bg-slate-50' }}"
                 >
-                    <span class="text-base">💳</span>
+                    <span class="text-base sm:text-lg">💳</span>
                     <span>2. K-NET</span>
                     @if($paymentMethod === 'KNET')
                         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -277,7 +317,7 @@
                     <button 
                         type="button"
                         disabled
-                        class="w-full py-3.5 rounded-xl bg-slate-200 text-slate-400 font-bold text-xs tracking-wider uppercase border border-slate-300 cursor-not-allowed flex items-center justify-center gap-2 shadow-2xs"
+                        class="w-full py-3.5 rounded-xl bg-slate-200 text-slate-400 font-bold text-xs sm:text-sm tracking-wider uppercase border border-slate-300 cursor-not-allowed flex items-center justify-center gap-2 shadow-2xs"
                     >
                         <span>🔒 Select Cash or K-Net to Checkout</span>
                     </button>
@@ -286,13 +326,13 @@
                         wire:click="checkout"
                         type="button"
                         @disabled(count($cart) === 0)
-                        class="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm tracking-wide shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+                        class="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-extrabold text-sm sm:text-base tracking-wide shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
                     >
                         <span>CHECKOUT ({{ $paymentMethod }})</span>
-                        <span class="font-mono bg-white/20 px-2.5 py-0.5 rounded-md text-xs">
+                        <span class="font-mono bg-white/20 px-2.5 py-0.5 rounded-md text-xs sm:text-sm">
                             {{ number_format($total, 3) }} KWD
                         </span>
-                        <span class="text-[10px] opacity-80">(Enter)</span>
+                        <span class="text-[10px] sm:text-xs opacity-80">(Enter)</span>
                     </button>
                 @endif
             </div>
@@ -300,11 +340,9 @@
         </main>
 
         <!-- ============================================================== -->
-        <!-- 3. RIGHT COLUMN (30% WIDTH): CART DISPLAY & PRICING IN 1 BOX   -->
-        <!--    TOP HALF: CART ITEMS DISPLAY                                -->
-        <!--    BOTTOM HALF: PRICING (1. TOTAL, 2. CASH, 3. CHANGE IN 1 BOX)-->
+        <!-- 3. RIGHT COLUMN: CART DISPLAY & PRICING IN 1 BOX               -->
         <!-- ============================================================== -->
-        <section class="w-[30%] h-full flex flex-col bg-white shrink-0">
+        <section :class="mobileTab === 'cart' ? 'flex' : 'hidden md:flex'" class="w-full md:w-[30%] lg:w-[30%] h-full flex-col bg-white shrink-0">
             
             <!-- TOP HALF: CART DISPLAY -->
             <div class="flex-[1.2] flex flex-col border-b border-slate-200 overflow-hidden bg-white">
@@ -373,49 +411,106 @@
                     <!-- 1. TOTAL ROW -->
                     <div class="p-3 bg-slate-900 text-white flex items-center justify-between">
                         <div>
-                            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-300 block">1. Total</span>
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-300 block">1. Total</span>
                             <span class="text-[10px] text-slate-400">Direct Numpad Total</span>
                         </div>
                         <div class="text-right">
-                            <span class="font-mono font-extrabold text-2xl text-white block leading-tight">
+                            <span class="font-mono font-black text-2xl sm:text-3xl text-white block leading-tight">
                                 {{ number_format($total, 3) }}
                             </span>
-                            <span class="text-[10px] font-bold text-slate-300">KWD</span>
+                            <span class="text-[10px] sm:text-xs font-bold text-slate-300">KWD</span>
                         </div>
                     </div>
 
                     <!-- 2. CASH ROW -->
                     <div class="p-3 bg-white flex items-center justify-between">
                         <div>
-                            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-600 block">2. Cash</span>
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-600 block">2. Cash</span>
                             <span class="text-[10px] text-slate-400">Tendered Amount</span>
                         </div>
                         <div class="text-right">
-                            <span class="font-mono font-bold text-xl text-slate-900 block leading-tight">
+                            <span class="font-mono font-bold text-xl sm:text-2xl text-slate-900 block leading-tight">
                                 {{ number_format((float) $tenderedInput, 3) }}
                             </span>
-                            <span class="text-[10px] font-bold text-slate-500">KWD</span>
+                            <span class="text-[10px] sm:text-xs font-bold text-slate-500">KWD</span>
                         </div>
                     </div>
 
                     <!-- 3. CHANGE ROW -->
                     <div class="p-3 {{ $changeDue >= 0 ? 'bg-emerald-50/70' : 'bg-rose-50/70' }} flex items-center justify-between">
                         <div>
-                            <span class="text-[11px] font-bold uppercase tracking-wider {{ $changeDue >= 0 ? 'text-emerald-800' : 'text-rose-800' }} block">3. Change</span>
+                            <span class="text-xs font-bold uppercase tracking-wider {{ $changeDue >= 0 ? 'text-emerald-800' : 'text-rose-800' }} block">3. Change</span>
                             <span class="text-[10px] text-slate-500">Balance Due</span>
                         </div>
                         <div class="text-right">
-                            <span class="font-mono font-extrabold text-xl block leading-tight {{ $changeDue >= 0 ? 'text-emerald-700' : 'text-rose-600' }}">
+                            <span class="font-mono font-black text-xl sm:text-2xl block leading-tight {{ $changeDue >= 0 ? 'text-emerald-700' : 'text-rose-600' }}">
                                 {{ number_format(max(0, $changeDue), 3) }}
                             </span>
-                            <span class="text-[10px] font-bold text-slate-600">KWD</span>
+                            <span class="text-[10px] sm:text-xs font-bold text-slate-600">KWD</span>
                         </div>
                     </div>
 
                 </div>
 
+                <!-- Mobile Direct Checkout in Cart View -->
+                <div class="md:hidden pt-3">
+                    @if(empty($paymentMethod))
+                        <button 
+                            type="button" 
+                            @click="mobileTab = 'register'"
+                            class="w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs tracking-wider uppercase border border-slate-300 flex items-center justify-center gap-1.5 transition cursor-pointer"
+                        >
+                            <span>👉 Select Payment Method (Cash / K-Net)</span>
+                        </button>
+                    @else
+                        <button 
+                            wire:click="checkout"
+                            type="button"
+                            @disabled(count($cart) === 0)
+                            class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs tracking-wide shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                            <span>CHECKOUT ({{ $paymentMethod }})</span>
+                            <span class="font-mono bg-white/20 px-2 py-0.5 rounded text-[11px]">
+                                {{ number_format($total, 3) }} KWD
+                            </span>
+                        </button>
+                    @endif
+                </div>
+
             </div>
         </section>
+
+        <!-- MOBILE STICKY QUICK CART BAR (< md) -->
+        <div 
+            x-show="mobileTab !== 'cart' && {{ count($cart) > 0 ? 'true' : 'false' }}"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="translate-y-full opacity-0"
+            x-transition:enter-end="translate-y-0 opacity-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="translate-y-0 opacity-100"
+            x-transition:leave-end="translate-y-full opacity-0"
+            class="md:hidden absolute bottom-0 left-0 right-0 p-2.5 bg-slate-900 text-white flex items-center justify-between border-t border-slate-800 shrink-0 shadow-lg z-30"
+        >
+            <button 
+                type="button" 
+                @click="mobileTab = 'cart'" 
+                class="flex items-center gap-2 text-left cursor-pointer"
+            >
+                <span class="bg-white/20 text-white text-xs px-2 py-0.5 rounded font-bold">
+                    🛒 {{ count($cart) }} {{ count($cart) === 1 ? 'item' : 'items' }}
+                </span>
+                <span class="font-mono text-xs font-bold text-white">
+                    {{ number_format($total, 3) }} KWD
+                </span>
+            </button>
+            <button 
+                type="button" 
+                @click="mobileTab = 'cart'" 
+                class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-lg transition cursor-pointer flex items-center gap-1"
+            >
+                <span>View Cart →</span>
+            </button>
+        </div>
 
     </div>
 </div>

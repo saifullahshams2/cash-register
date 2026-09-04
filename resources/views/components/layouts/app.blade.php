@@ -2,7 +2,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full bg-white text-slate-900 antialiased select-none">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     @php
         $siteTitle = \App\Models\Setting::get('site_title', config('app.name', 'Cash Register POS'));
         $siteFavicon = \App\Models\Setting::get('site_favicon');
@@ -12,19 +12,15 @@
         <link rel="icon" href="{{ $siteFavicon }}">
     @endif
 
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700|jetbrains-mono:400,500,600,700&display=swap" rel="stylesheet" />
-
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 
     <style>
         body {
-            font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+            font-family: Arial, sans-serif;
         }
         .font-mono {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: Arial, sans-serif;
         }
         /* Custom scrollbars for light theme */
         ::-webkit-scrollbar {
@@ -43,7 +39,7 @@
         }
     </style>
 </head>
-<body class="h-screen w-screen overflow-hidden bg-white text-slate-900 flex flex-col">
+<body class="min-h-dvh w-full bg-white text-slate-900 flex flex-col">
     {{ $slot }}
 
     @livewireScripts
