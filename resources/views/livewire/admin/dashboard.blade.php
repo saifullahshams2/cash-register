@@ -180,7 +180,7 @@
                     </div>
 
                     <!-- 70% RIGHT: Calendar Date Sales (From / To Date Picker & Period Summary Badges) -->
-                    <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-4">
+                    <div class="md:col-span-7 bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-4">
                         <div class="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <div>
                                 <h3 class="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
@@ -189,33 +189,55 @@
                                 <p class="text-[11px] text-slate-500">Filter by single day or custom date range</p>
                             </div>
 
-                            <!-- Quick Preset Buttons -->
-                            <div class="flex flex-wrap items-center gap-1.5">
-                                <button 
-                                    wire:click="setDatePreset('today')" 
-                                    class="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 transition cursor-pointer"
+                            <!-- Export Buttons (Excel & PDF) -->
+                            <div class="flex items-center gap-2">
+                                <a 
+                                    href="{{ route('admin.export.xlsx', ['from' => $fromDate, 'to' => $toDate]) }}" 
+                                    class="px-3 py-1.5 text-xs font-bold rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                                    title="Download Excel spreadsheet (.xlsx)"
                                 >
-                                    Today
-                                </button>
-                                <button 
-                                    wire:click="setDatePreset('yesterday')" 
-                                    class="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 transition cursor-pointer"
+                                    <span>📊</span>
+                                    <span>Export Excel (.xlsx)</span>
+                                </a>
+                                <a 
+                                    href="{{ route('admin.export.pdf', ['from' => $fromDate, 'to' => $toDate]) }}" 
+                                    target="_blank"
+                                    class="px-3 py-1.5 text-xs font-bold rounded-xl border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 transition cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                                    title="Download A4 PDF document (.pdf)"
                                 >
-                                    Yesterday
-                                </button>
-                                <button 
-                                    wire:click="setDatePreset('this_week')" 
-                                    class="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 transition cursor-pointer"
-                                >
-                                    This Week
-                                </button>
-                                <button 
-                                    wire:click="setDatePreset('this_month')" 
-                                    class="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 transition cursor-pointer"
-                                >
-                                    This Month
-                                </button>
+                                    <span>📄</span>
+                                    <span>Export PDF (.pdf)</span>
+                                </a>
                             </div>
+                        </div>
+
+                        <!-- Quick Preset Buttons (Moved above both calendar selection inputs) -->
+                        <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                            <span class="text-[10px] uppercase font-bold text-slate-400 mr-1">Quick Select:</span>
+                            <button 
+                                wire:click="setDatePreset('today')" 
+                                class="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 transition cursor-pointer"
+                            >
+                                Today
+                            </button>
+                            <button 
+                                wire:click="setDatePreset('yesterday')" 
+                                class="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 transition cursor-pointer"
+                            >
+                                Yesterday
+                            </button>
+                            <button 
+                                wire:click="setDatePreset('this_week')" 
+                                class="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 transition cursor-pointer"
+                            >
+                                This Week
+                            </button>
+                            <button 
+                                wire:click="setDatePreset('this_month')" 
+                                class="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 transition cursor-pointer"
+                            >
+                                This Month
+                            </button>
                         </div>
 
                         <!-- From Date and To Date Inputs -->
@@ -700,6 +722,25 @@
                 </div>
 
                 <form wire:submit="saveSettings" class="space-y-6">
+                    <!-- Company Name -->
+                    <div>
+                        <label for="companyName" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                            Company / Store Name
+                        </label>
+                        <input 
+                            wire:model="companyName" 
+                            type="text" 
+                            id="companyName" 
+                            placeholder="e.g. Al-Bustan Cafe, My Store Kuwait"
+                            required
+                            class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition font-sans"
+                        >
+                        <p class="text-[11px] text-slate-500 mt-1">Printed on official A4 PDF &amp; Excel sales export reports.</p>
+                        @error('companyName')
+                            <p class="text-[11px] text-rose-600 font-semibold mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     <!-- Website Title -->
                     <div>
                         <label for="siteTitle" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
@@ -818,6 +859,134 @@
                         </button>
                     </div>
                 </form>
+            </div>
+
+            <!-- Database Engine Settings Card -->
+            <div class="max-w-2xl mx-auto bg-white border border-slate-200 rounded-2xl shadow-xs p-6 space-y-5">
+                <div class="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                            <span>🗄️</span> Database Engine
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-1">Switch between MySQL server or standalone SQLite database file</p>
+                    </div>
+                    <div>
+                        @if ($currentDbDriver === 'mysql')
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                                Active: MySQL
+                            </span>
+                        @else
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                                Active: SQLite
+                            </span>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Database Engine Selection Buttons -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button 
+                        type="button" 
+                        wire:click="$set('targetDbDriver', 'sqlite')"
+                        class="p-4 rounded-xl border text-left transition cursor-pointer {{ $targetDbDriver === 'sqlite' ? 'border-emerald-500 bg-emerald-50/50 ring-1 ring-emerald-500' : 'border-slate-200 hover:bg-slate-50' }}"
+                    >
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-bold text-sm text-slate-900">SQLite</span>
+                            <span class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">Zero Config</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500">Standalone file database. Ideal for local dev, testing, and offline terminal use.</p>
+                    </button>
+
+                    <button 
+                        type="button" 
+                        wire:click="$set('targetDbDriver', 'mysql')"
+                        class="p-4 rounded-xl border text-left transition cursor-pointer {{ $targetDbDriver === 'mysql' ? 'border-blue-500 bg-blue-50/50 ring-1 ring-blue-500' : 'border-slate-200 hover:bg-slate-50' }}"
+                    >
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-bold text-sm text-slate-900">MySQL / MariaDB</span>
+                            <span class="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-semibold">Production Scale</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500">High-concurrency client-server RDBMS (XAMPP, Laragon, or network server).</p>
+                    </button>
+                </div>
+
+                <!-- Selected Engine Details -->
+                @if ($targetDbDriver === 'sqlite')
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                            <span class="font-semibold text-slate-700">Database File Location:</span>
+                            <code class="font-mono text-[11px] text-slate-600 bg-white px-2 py-1 rounded border border-slate-200">database/database.sqlite</code>
+                        </div>
+                        @if ($currentDbDriver !== 'sqlite')
+                            <div class="pt-2 flex justify-end">
+                                <button 
+                                    type="button" 
+                                    wire:click="switchDatabase('sqlite')"
+                                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                                >
+                                    <span>✓</span> Switch to SQLite
+                                </button>
+                            </div>
+                        @else
+                            <div class="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                                <span>✓</span> SQLite is currently active as the primary application database.
+                            </div>
+                        @endif
+                    </div>
+                @else
+                    <!-- MySQL Configuration Form -->
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3.5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Host</label>
+                                <input wire:model="mysqlHost" type="text" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Port</label>
+                                <input wire:model="mysqlPort" type="text" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Database Name</label>
+                                <input wire:model="mysqlDatabase" type="text" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Username</label>
+                                <input wire:model="mysqlUsername" type="text" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800">
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Password</label>
+                                <input wire:model="mysqlPassword" type="password" placeholder="Leave empty if default root" class="w-full bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800">
+                            </div>
+                        </div>
+
+                        <!-- Test Status Banner -->
+                        @if ($dbTestMessage)
+                            <div class="p-3 rounded-xl text-xs font-semibold {{ $dbTestStatus === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200' }}">
+                                {{ $dbTestMessage }}
+                            </div>
+                        @endif
+
+                        <div class="flex items-center justify-between pt-2">
+                            <button 
+                                type="button" 
+                                wire:click="testMysqlConnection"
+                                class="px-3.5 py-2 text-xs font-bold rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 transition cursor-pointer"
+                            >
+                                Test MySQL Connection
+                            </button>
+
+                            <button 
+                                type="button" 
+                                wire:click="switchDatabase('mysql')"
+                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                            >
+                                <span>⚡</span> Apply &amp; Switch to MySQL
+                            </button>
+                        </div>
+                    </div>
+                @endif
             </div>
         @endif
 

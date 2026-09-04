@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Url;
@@ -47,6 +48,8 @@ class Dashboard extends Component
     public string $newUserPasswordConfirmation = '';
 
     // --- Settings State ---
+    public string $companyName = '';
+
     public string $siteTitle = '';
 
     public $siteLogo = null;
@@ -56,6 +59,25 @@ class Dashboard extends Component
     public $siteFavicon = null;
 
     public ?string $currentFavicon = null;
+
+    // --- Database Engine State ---
+    public string $currentDbDriver = 'sqlite';
+
+    public string $targetDbDriver = 'sqlite';
+
+    public string $mysqlHost = '127.0.0.1';
+
+    public string $mysqlPort = '3306';
+
+    public string $mysqlDatabase = 'cash_register';
+
+    public string $mysqlUsername = 'root';
+
+    public string $mysqlPassword = '';
+
+    public ?string $dbTestMessage = null;
+
+    public ?string $dbTestStatus = null;
 
     public function mount(): void
     {
@@ -71,9 +93,18 @@ class Dashboard extends Component
             $this->tab = 'analytics';
         }
 
+        $this->companyName = Setting::get('company_name', 'Kuwait Store POS');
         $this->siteTitle = Setting::get('site_title', 'CASH REGISTER');
         $this->currentLogo = Setting::get('site_logo');
         $this->currentFavicon = Setting::get('site_favicon');
+
+        $this->currentDbDriver = config('database.default', env('DB_CONNECTION', 'sqlite'));
+        $this->targetDbDriver = $this->currentDbDriver;
+        $this->mysqlHost = env('DB_HOST', '127.0.0.1');
+        $this->mysqlPort = (string) env('DB_PORT', '3306');
+        $this->mysqlDatabase = env('DB_DATABASE', 'cash_register');
+        $this->mysqlUsername = env('DB_USERNAME', 'root');
+        $this->mysqlPassword = (string) env('DB_PASSWORD', '');
     }
 
     public function setTab(string $tab): void
@@ -226,16 +257,19 @@ class Dashboard extends Component
     public function saveSettings(): void
     {
         $this->validate([
+            'companyName' => 'required|string|max:150',
             'siteTitle' => 'required|string|max:100',
             'siteLogo' => 'nullable|image|max:2048',
             'siteFavicon' => 'nullable|image|max:1024',
         ], [], [
+            'companyName' => 'company name',
             'siteTitle' => 'website title',
             'siteLogo' => 'logo image',
             'siteFavicon' => 'favicon image',
         ]);
 
         try {
+            Setting::set('company_name', trim($this->companyName));
             Setting::set('site_title', trim($this->siteTitle));
 
             if ($this->siteLogo) {
@@ -276,6 +310,118 @@ class Dashboard extends Component
         $this->currentFavicon = null;
         $this->siteFavicon = null;
         $this->successMessage = 'Favicon removed.';
+    }
+
+    // --- Database Engine Actions ---
+
+    public function testMysqlConnection(): void
+    {
+        $this->validate([
+            'mysqlHost' => 'required|string',
+            'mysqlPort' => 'required|numeric',
+            'mysqlDatabase' => 'required|string',
+            'mysqlUsername' => 'required|string',
+        ]);
+
+        try {
+            $dsn = "mysql:host={$this->mysqlHost};port={$this->mysqlPort};charset=utf8mb4";
+            $pdo = new \PDO($dsn, $this->mysqlUsername, $this->mysqlPassword, [
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                \PDO::ATTR_TIMEOUT => 3,
+            ]);
+            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$this->mysqlDatabase}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+
+            $this->dbTestStatus = 'success';
+            $this->dbTestMessage = "Successfully connected to MySQL on {$this->mysqlHost}:{$this->mysqlPort} and verified database '{$this->mysqlDatabase}'!";
+        } catch (\Throwable $e) {
+            $this->dbTestStatus = 'error';
+            $this->dbTestMessage = 'MySQL connection failed: '.$e->getMessage();
+        }
+    }
+
+    public function switchDatabase(string $driver): void
+    {
+        if (! in_array($driver, ['sqlite', 'mysql'], true)) {
+            return;
+        }
+
+        if ($driver === 'mysql') {
+            $this->validate([
+                'mysqlHost' => 'required|string',
+                'mysqlPort' => 'required|numeric',
+                'mysqlDatabase' => 'required|string',
+                'mysqlUsername' => 'required|string',
+            ]);
+
+            try {
+                $dsn = "mysql:host={$this->mysqlHost};port={$this->mysqlPort};charset=utf8mb4";
+                $pdo = new \PDO($dsn, $this->mysqlUsername, $this->mysqlPassword, [
+                    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                    \PDO::ATTR_TIMEOUT => 3,
+                ]);
+                $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$this->mysqlDatabase}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            } catch (\Throwable $e) {
+                $this->errorMessage = 'Cannot switch to MySQL: '.$e->getMessage();
+                $this->successMessage = null;
+
+                return;
+            }
+
+            $this->updateEnvFile([
+                'DB_CONNECTION' => 'mysql',
+                'DB_HOST' => $this->mysqlHost,
+                'DB_PORT' => $this->mysqlPort,
+                'DB_DATABASE' => $this->mysqlDatabase,
+                'DB_USERNAME' => $this->mysqlUsername,
+                'DB_PASSWORD' => $this->mysqlPassword,
+            ]);
+
+            $this->currentDbDriver = 'mysql';
+            $this->targetDbDriver = 'mysql';
+            $this->successMessage = "Switched active database to MySQL ('{$this->mysqlDatabase}') on {$this->mysqlHost}:{$this->mysqlPort}!";
+            $this->errorMessage = null;
+        } else {
+            $sqlitePath = database_path('database.sqlite');
+            if (! file_exists($sqlitePath)) {
+                touch($sqlitePath);
+            }
+
+            $this->updateEnvFile([
+                'DB_CONNECTION' => 'sqlite',
+            ]);
+
+            $this->currentDbDriver = 'sqlite';
+            $this->targetDbDriver = 'sqlite';
+            $this->successMessage = 'Switched active database to SQLite (database/database.sqlite)!';
+            $this->errorMessage = null;
+        }
+
+        Artisan::call('config:clear');
+    }
+
+    protected function updateEnvFile(array $data): void
+    {
+        $envPath = base_path('.env');
+        if (! file_exists($envPath)) {
+            return;
+        }
+
+        $content = file_get_contents($envPath);
+
+        foreach ($data as $key => $value) {
+            $escapedValue = (preg_match('/\s/', $value) || str_contains($value, '#') || str_contains($value, '"'))
+                ? '"'.addcslashes($value, '"').'"'
+                : $value;
+
+            $pattern = "/^#?\s*({$key}\s*=.*)$/m";
+            if (preg_match($pattern, $content)) {
+                $content = preg_replace($pattern, "{$key}={$escapedValue}", $content);
+            } else {
+                $content .= "\n{$key}={$escapedValue}";
+            }
+        }
+
+        file_put_contents($envPath, $content);
     }
 
     // --- Computed Analytics Properties ---

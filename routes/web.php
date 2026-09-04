@@ -1,10 +1,19 @@
 <?php
 
+use App\Http\Controllers\Admin\ExportController;
+use App\Installer\InstallerController;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Auth\Login;
 use App\Livewire\Pos;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+
+// Production Installer Routes (Safe & deletable: if app/Installer is deleted, routes simply vanish)
+if (file_exists(app_path('Installer/InstallerController.php'))) {
+    Route::get('/install', [InstallerController::class, 'index'])->name('installer.index');
+    Route::post('/install/test-db', [InstallerController::class, 'testDatabase'])->name('installer.test-db');
+    Route::post('/install/process', [InstallerController::class, 'process'])->name('installer.process');
+}
 
 // Guest Authentication Routes
 Route::middleware('guest')->group(function () {
@@ -35,5 +44,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/products', function () {
             return redirect()->route('admin.dashboard', ['tab' => 'products']);
         })->name('products');
+
+        // Sales Report Exports
+        Route::get('/export/pdf', [ExportController::class, 'exportPdf'])->name('export.pdf');
+        Route::get('/export/xlsx', [ExportController::class, 'exportXlsx'])->name('export.xlsx');
     });
 });

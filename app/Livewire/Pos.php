@@ -282,6 +282,8 @@ class Pos extends Component
             $orderNumber = 'INV-'.date('Ymd').'-'.strtoupper(substr(uniqid(), -4));
 
             $order = Order::create([
+                'user_id' => Auth::id(),
+                'cashier_name' => Auth::user()?->name ?? 'Cashier',
                 'order_number' => $orderNumber,
                 'subtotal' => $total,
                 'discount' => 0.000,

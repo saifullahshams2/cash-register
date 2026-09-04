@@ -29,9 +29,19 @@ class AuthTest extends TestCase
     {
         $response = $this->get('/login');
         $response->assertStatus(200);
-        $response->assertSee('CASH REGISTER TERMINAL');
         $response->assertSee('Sign In to Terminal');
         $response->assertSee('Username');
+    }
+
+    public function test_login_autofill_credential_helpers(): void
+    {
+        Livewire::test(Login::class)
+            ->call('fillAdminCredentials')
+            ->assertSet('username', 'admin')
+            ->assertSet('password', 'password')
+            ->call('fillCashierCredentials')
+            ->assertSet('username', 'cashier')
+            ->assertSet('password', 'password');
     }
 
     public function test_cashier_can_login_and_access_pos(): void

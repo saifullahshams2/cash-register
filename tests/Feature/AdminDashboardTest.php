@@ -175,17 +175,78 @@ class AdminDashboardTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $admin->id]);
     }
 
-    public function test_admin_can_update_website_settings(): void
+    public function test_admin_can_update_website_settings_including_company_name(): void
     {
         $admin = User::where('role', User::ROLE_ADMIN)->first();
         $this->actingAs($admin);
 
         Livewire::test(Dashboard::class)
             ->set('tab', 'settings')
+            ->set('companyName', 'Al-Bustan Cafe Kuwait')
             ->set('siteTitle', 'Coffee House Kuwait')
             ->call('saveSettings')
             ->assertSet('successMessage', 'Website settings updated successfully!');
 
+        $this->assertEquals('Al-Bustan Cafe Kuwait', Setting::get('company_name'));
         $this->assertEquals('Coffee House Kuwait', Setting::get('site_title'));
+    }
+
+    public function test_admin_can_export_sales_report_as_a4_pdf(): void
+    {
+        $admin = User::where('role', User::ROLE_ADMIN)->first();
+        Setting::set('company_name', 'Kuwait Flagship Store');
+
+        Order::create([
+            'order_number' => 'INV-20260904-001',
+            'cashier_name' => 'Sara Cashier',
+            'subtotal' => 25.500,
+            'total' => 25.500,
+            'payment_method' => 'KNET',
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.export.pdf', [
+            'from' => now()->toDateString(),
+            'to' => now()->toDateString(),
+        ]));
+
+        $response->assertStatus(200);
+        $response->assertHeader('content-type', 'application/pdf');
+        $this->assertStringContainsString('attachment;', $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('.pdf', $response->headers->get('content-disposition'));
+    }
+
+    public function test_admin_can_export_sales_report_as_xlsx(): void
+    {
+        $admin = User::where('role', User::ROLE_ADMIN)->first();
+        Setting::set('company_name', 'Kuwait Flagship Store');
+
+        Order::create([
+            'order_number' => 'INV-20260904-002',
+            'cashier_name' => 'Fahad Cashier',
+            'subtotal' => 15.000,
+            'total' => 15.000,
+            'payment_method' => 'CASH',
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.export.xlsx', [
+            'from' => now()->toDateString(),
+            'to' => now()->toDateString(),
+        ]));
+
+        $response->assertStatus(200);
+        $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $this->assertStringContainsString('attachment;', $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('.xlsx', $response->headers->get('content-disposition'));
+    }
+
+    public function test_cashier_cannot_access_export_routes(): void
+    {
+        $cashier = User::where('role', User::ROLE_CASHIER)->first();
+
+        $pdfResponse = $this->actingAs($cashier)->get(route('admin.export.pdf'));
+        $pdfResponse->assertStatus(403);
+
+        $xlsxResponse = $this->actingAs($cashier)->get(route('admin.export.xlsx'));
+        $xlsxResponse->assertStatus(403);
     }
 }

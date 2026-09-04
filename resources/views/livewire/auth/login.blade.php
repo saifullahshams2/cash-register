@@ -72,16 +72,10 @@
                 <!-- Submit Button -->
                 <button 
                     type="submit" 
-                    class="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-xs transition active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
+                    class="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-xs transition active:scale-98 flex items-center justify-center cursor-pointer"
                 >
                     <span wire:loading.remove>Sign In to Terminal</span>
-                    <span wire:loading class="flex items-center gap-2">
-                        <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                        </svg>
-                        Authenticating...
-                    </span>
+                    <span wire:loading>Signing In...</span>
                 </button>
             </form>
 
@@ -93,7 +87,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button 
                         type="button"
-                        wire:click="$set('username', 'admin'); $set('password', 'password');"
+                        wire:click="fillAdminCredentials"
                         class="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left cursor-pointer transition"
                     >
                         <div class="font-bold text-slate-800">Admin Account</div>
@@ -101,7 +95,7 @@
                     </button>
                     <button 
                         type="button"
-                        wire:click="$set('username', 'cashier'); $set('password', 'password');"
+                        wire:click="fillCashierCredentials"
                         class="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left cursor-pointer transition"
                     >
                         <div class="font-bold text-slate-800">Cashier Account</div>
