@@ -103,4 +103,16 @@ class InstallerTest extends TestCase
         ]);
         $this->assertFileExists(storage_path('installed'));
     }
+
+    public function test_uninstalled_system_redirects_visitors_to_installer(): void
+    {
+        @unlink(storage_path('installed'));
+        User::query()->delete();
+
+        $response = $this->get('/');
+        $response->assertRedirect(route('installer.index'));
+
+        $loginResponse = $this->get('/login');
+        $loginResponse->assertRedirect(route('installer.index'));
+    }
 }

@@ -25,6 +25,8 @@ class InstallerController extends Controller
 
     public function index()
     {
+        $this->prepareDirectoriesAndEnvironment();
+
         if ($this->isAlreadyInstalled()) {
             return redirect()->route('login')->with('info', 'Application is already installed.');
         }
@@ -42,6 +44,8 @@ class InstallerController extends Controller
 
     public function testDatabase(Request $request): JsonResponse
     {
+        $this->prepareDirectoriesAndEnvironment();
+
         $host = $request->input('host', '127.0.0.1');
         $port = $request->input('port', '3306');
         $database = $request->input('database', 'cash_register');
@@ -71,6 +75,8 @@ class InstallerController extends Controller
 
     public function process(Request $request)
     {
+        $this->prepareDirectoriesAndEnvironment();
+
         if ($this->isAlreadyInstalled()) {
             return redirect()->route('login');
         }
@@ -105,6 +111,12 @@ class InstallerController extends Controller
                 'DB_CONNECTION' => $dbConn,
             ];
 
+            // Auto-generate APP_KEY if empty so user never needs to run php artisan key:generate
+            $currentKey = config('app.key') ?: env('APP_KEY');
+            if (empty($currentKey) || $currentKey === 'base64:YOUR_APP_KEY_HERE') {
+                $envUpdates['APP_KEY'] = 'base64:'.base64_encode(random_bytes(32));
+            }
+
             if ($dbConn === 'sqlite') {
                 $sqlitePath = database_path('database.sqlite');
                 if (! file_exists($sqlitePath)) {
@@ -130,12 +142,7 @@ class InstallerController extends Controller
             $this->updateEnvFile($envUpdates);
             Artisan::call('config:clear');
 
-            // 2. Generate APP_KEY if missing
-            if (empty(config('app.key')) && empty(env('APP_KEY'))) {
-                Artisan::call('key:generate', ['--force' => true]);
-            }
-
-            // 3. Run database migrations
+            // 2. Run database migrations
             Artisan::call('migrate', ['--force' => true]);
 
             // 4. Create the First Admin Account (NO email required, NO default cashier)
@@ -189,6 +196,44 @@ class InstallerController extends Controller
             'Bootstrap Cache Writable' => is_writable(base_path('bootstrap/cache')),
             'Database Dir Writable' => is_writable(database_path()),
         ];
+    }
+
+    protected function prepareDirectoriesAndEnvironment(): void
+    {
+        // 1. Ensure .env exists automatically
+        $envPath = base_path('.env');
+        if (! file_exists($envPath) && file_exists(base_path('.env.example'))) {
+            @copy(base_path('.env.example'), $envPath);
+        }
+
+        // 2. Ensure all storage folders exist with write permissions
+        $folders = [
+            storage_path('framework/sessions'),
+            storage_path('framework/views'),
+            storage_path('framework/cache'),
+            storage_path('framework/cache/data'),
+            storage_path('logs'),
+            storage_path('app/public'),
+            base_path('bootstrap/cache'),
+            database_path(),
+        ];
+
+        foreach ($folders as $dir) {
+            if (! is_dir($dir)) {
+                @mkdir($dir, 0777, true);
+            }
+        }
+
+        // 3. Ensure public/storage exists or is symlinked
+        $publicStorage = public_path('storage');
+        $targetStorage = storage_path('app/public');
+        if (! file_exists($publicStorage)) {
+            try {
+                @symlink($targetStorage, $publicStorage);
+            } catch (Throwable) {
+                // If symlink not permitted on shared host / windows, silently proceed
+            }
+        }
     }
 
     protected function updateEnvFile(array $data): void
