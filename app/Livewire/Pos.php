@@ -7,6 +7,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 
 class Pos extends Component
@@ -37,6 +38,8 @@ class Pos extends Component
     public ?string $notificationMessage = null;
 
     public string $notificationType = 'success';
+
+    public bool $isProcessing = false;
 
     public function mount()
     {
@@ -252,16 +255,40 @@ class Pos extends Component
 
     public function checkout(): void
     {
+        if ($this->isProcessing) {
+            return;
+        }
+
+        $this->isProcessing = true;
+
         if (empty($this->cart)) {
+            $this->isProcessing = false;
             $this->notify('Please add items to cart first', 'error');
 
             return;
         }
 
         if (empty($this->paymentMethod)) {
+            $this->isProcessing = false;
             $this->notify('Please select Cash or K-Net before checkout', 'error');
 
             return;
+        }
+
+        // Validate cart items to prevent client-side tampering (e.g. negative quantities or forged IDs)
+        $productIds = array_column($this->cart, 'id');
+        $validProductIds = Product::whereIn('id', $productIds)->where('is_active', true)->pluck('id')->all();
+
+        foreach ($this->cart as $item) {
+            $qty = isset($item['quantity']) ? (int) $item['quantity'] : 0;
+            $pid = isset($item['id']) ? (int) $item['id'] : 0;
+
+            if ($qty < 1 || $qty > 9999 || ! in_array($pid, $validProductIds, true)) {
+                $this->isProcessing = false;
+                $this->notify('Cart contains invalid items or quantities.', 'error');
+
+                return;
+            }
         }
 
         $total = $this->getTotalProperty();
@@ -269,6 +296,7 @@ class Pos extends Component
 
         if ($this->paymentMethod === 'CASH' && $tendered < $total) {
             $shortage = number_format($total - $tendered, 3, '.', '');
+            $this->isProcessing = false;
             $this->notify("Cash is short by {$shortage} KWD", 'error');
 
             return;
@@ -299,15 +327,15 @@ class Pos extends Component
             foreach ($this->cart as $item) {
                 OrderItem::create([
                     'order_id' => $order->id,
-                    'product_id' => $item['id'],
-                    'product_name' => $item['name'],
-                    'product_code' => $item['code'],
+                    'product_id' => (int) $item['id'],
+                    'product_name' => (string) $item['name'],
+                    'product_code' => (string) $item['code'],
                     'unit_price' => 0.000,
-                    'quantity' => $item['quantity'],
+                    'quantity' => (int) $item['quantity'],
                     'subtotal' => 0.000,
                 ]);
 
-                Product::where('id', $item['id'])->decrement('stock', $item['quantity']);
+                Product::where('id', (int) $item['id'])->decrement('stock', (int) $item['quantity']);
             }
 
             DB::commit();
@@ -323,7 +351,11 @@ class Pos extends Component
             $this->notify("Saved {$orderNumber} | Change: {$changeFormatted} KWD", 'success');
         } catch (\Throwable $e) {
             DB::rollBack();
-            $this->notify('Checkout error: '.$e->getMessage(), 'error');
+            Log::error('POS Checkout failed: '.$e->getMessage());
+            $errorMsg = config('app.debug') ? $e->getMessage() : 'An error occurred while processing checkout. Please try again.';
+            $this->notify('Checkout error: '.$errorMsg, 'error');
+        } finally {
+            $this->isProcessing = false;
         }
     }
 

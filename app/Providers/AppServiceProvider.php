@@ -19,9 +19,9 @@ class AppServiceProvider extends ServiceProvider
                 'queue.default' => 'sync',
             ]);
 
-            // Guarantee valid encryption key if missing
+            // Generate dynamic ephemeral encryption key during initial setup wizard if missing
             if (empty(config('app.key')) || config('app.key') === 'base64:YOUR_APP_KEY_HERE') {
-                config(['app.key' => 'base64:r8X7kL2mP9vN3qW6tY1uI4oE0aZ5sD8fG2hJ6kL9xP0=']);
+                config(['app.key' => 'base64:'.base64_encode(random_bytes(32))]);
             }
         }
     }
@@ -31,6 +31,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        if (file_exists(storage_path('installed')) && app()->isProduction()) {
+            if (empty(config('app.key')) || str_contains((string) config('app.key'), 'YOUR_APP_KEY_HERE')) {
+                throw new \RuntimeException('Application encryption key [APP_KEY] is not set. Run "php artisan key:generate" before starting in production.');
+            }
+        }
     }
 }

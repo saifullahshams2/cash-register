@@ -23,8 +23,12 @@ class EnsureAppIsInstalled
 
         $isInstalled = file_exists(storage_path('installed'));
 
-        // 3. If application is installed and user tries to access /install, redirect to /login
+        // 3. If application is installed and user tries to access /install, reject or redirect
         if ($isInstalled && $request->is('install*')) {
+            if ($request->expectsJson() || $request->is('install/test-db') || $request->isMethod('POST')) {
+                abort(403, 'Application is already installed.');
+            }
+
             return redirect()->route('login')->with('info', 'Application is already installed.');
         }
 

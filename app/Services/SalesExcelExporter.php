@@ -111,7 +111,7 @@ class SalesExcelExporter
 
     protected function buildSheetXml(Collection $orders, array $meta): string
     {
-        $companyName = htmlspecialchars($meta['companyName'] ?: 'Store POS', ENT_XML1, 'UTF-8');
+        $companyName = $this->sanitizeCellValue($meta['companyName'] ?: 'Store POS');
         $fromDate = Carbon::parse($meta['fromDate'])->format('d M Y');
         $toDate = Carbon::parse($meta['toDate'])->format('d M Y');
         $dateRangeText = ($fromDate === $toDate) ? $fromDate : "{$fromDate} to {$toDate}";
@@ -174,11 +174,11 @@ class SalesExcelExporter
 
         // Rows 9+: Data Rows
         foreach ($orders as $order) {
-            $orderNum = htmlspecialchars($order->order_number, ENT_XML1, 'UTF-8');
+            $orderNum = $this->sanitizeCellValue((string) $order->order_number);
             $date = $order->created_at->format('d M Y');
             $time = $order->created_at->format('h:i:s A');
-            $cashier = htmlspecialchars($order->cashier_name ?: ($order->user?->name ?: 'Cashier'), ENT_XML1, 'UTF-8');
-            $payment = htmlspecialchars($order->payment_method, ENT_XML1, 'UTF-8');
+            $cashier = $this->sanitizeCellValue((string) ($order->cashier_name ?: ($order->user?->name ?: 'Cashier')));
+            $payment = $this->sanitizeCellValue((string) $order->payment_method);
 
             $itemsSummary = '';
             if ($order->items && count($order->items) > 0) {
@@ -190,7 +190,7 @@ class SalesExcelExporter
             } else {
                 $itemsSummary = 'Direct Checkout';
             }
-            $itemsSummary = htmlspecialchars($itemsSummary, ENT_XML1, 'UTF-8');
+            $itemsSummary = $this->sanitizeCellValue($itemsSummary);
             $totalAmount = number_format($order->total, 3, '.', '');
 
             $rows[] = "<row r=\"{$r}\">"
@@ -233,5 +233,23 @@ class SalesExcelExporter
             .$xmlRows
             .'</sheetData>'
             .'</worksheet>';
+    }
+
+    /**
+     * Sanitize cell value against CSV / Excel Formula Injection (DDE).
+     * If the text begins with =, +, -, @, \t, \r, or |, prepend a single quote.
+     */
+    protected function sanitizeCellValue(?string $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        $trimmed = ltrim($value);
+        if ($trimmed !== '' && in_array($trimmed[0], ['=', '+', '-', '@', "\t", "\r", '|'], true)) {
+            $value = "'".$value;
+        }
+
+        return htmlspecialchars($value, ENT_XML1, 'UTF-8');
     }
 }

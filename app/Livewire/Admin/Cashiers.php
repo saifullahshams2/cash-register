@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Rule;
 use Livewire\Component;
 
@@ -49,7 +50,8 @@ class Cashiers extends Component
             $this->successMessage = "{$roleLabel} account created successfully!";
             $this->errorMessage = null;
         } catch (\Throwable $e) {
-            $this->errorMessage = 'Failed to create user: '.$e->getMessage();
+            Log::error('Failed to create user: '.$e->getMessage());
+            $this->errorMessage = config('app.debug') ? 'Failed to create user: '.$e->getMessage() : 'Failed to create user. Please check server logs.';
             $this->successMessage = null;
         }
     }

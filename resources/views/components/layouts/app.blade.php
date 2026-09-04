@@ -12,15 +12,10 @@
         <link rel="icon" href="{{ $siteFavicon }}">
     @endif
 
-    <!-- Tailwind Play CDN for instant, zero-build, bulletproof styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    @if(file_exists(public_path('css/app.css')))
-        <link rel="stylesheet" href="{{ asset('css/app.css') }}">
-    @endif
-
     @if(file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @elseif(file_exists(public_path('css/app.css')))
+        <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     @endif
     @livewireStyles
 

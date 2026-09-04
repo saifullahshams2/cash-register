@@ -31,7 +31,7 @@ class AuthTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Sign In to Terminal');
         $response->assertSee('Username');
-        $response->assertSee('https://cdn.tailwindcss.com');
+        $response->assertDontSee('https://cdn.tailwindcss.com');
         $response->assertSee('POS');
         $response->assertDontSee('KW');
     }

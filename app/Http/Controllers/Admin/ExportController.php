@@ -16,14 +16,7 @@ class ExportController extends Controller
 {
     public function exportPdf(Request $request)
     {
-        $from = $request->query('from', now()->toDateString());
-        $to = $request->query('to', $from);
-
-        if ($from > $to) {
-            $temp = $from;
-            $from = $to;
-            $to = $temp;
-        }
+        ['from' => $from, 'to' => $to, 'filename' => $fileName] = $this->resolveDateRange($request, 'pdf');
 
         $orders = Order::whereDate('created_at', '>=', $from)
             ->whereDate('created_at', '<=', $to)
@@ -77,21 +70,12 @@ class ExportController extends Controller
             'generatedBy' => Auth::user()?->name ?? 'Admin',
         ])->setPaper('a4', 'portrait');
 
-        $fileName = 'sales_report_'.$from.'_to_'.$to.'.pdf';
-
         return $pdf->download($fileName);
     }
 
     public function exportXlsx(Request $request, SalesExcelExporter $exporter): StreamedResponse
     {
-        $from = $request->query('from', now()->toDateString());
-        $to = $request->query('to', $from);
-
-        if ($from > $to) {
-            $temp = $from;
-            $from = $to;
-            $to = $temp;
-        }
+        ['from' => $from, 'to' => $to, 'filename' => $fileName] = $this->resolveDateRange($request, 'xlsx');
 
         $orders = Order::whereDate('created_at', '>=', $from)
             ->whereDate('created_at', '<=', $to)
@@ -110,7 +94,6 @@ class ExportController extends Controller
         ];
 
         $content = $exporter->generate($orders, $meta);
-        $fileName = 'sales_report_'.$from.'_to_'.$to.'.xlsx';
 
         return response()->streamDownload(function () use ($content) {
             echo $content;
@@ -119,5 +102,39 @@ class ExportController extends Controller
             'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
             'Cache-Control' => 'max-age=0',
         ]);
+    }
+
+    /**
+     * Parse and sanitize date range query parameters against injection.
+     *
+     * @return array{from: string, to: string, filename: string}
+     */
+    protected function resolveDateRange(Request $request, string $extension): array
+    {
+        $rawFrom = (string) $request->query('from', '');
+        $rawTo = (string) $request->query('to', '');
+
+        $from = (preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawFrom) && strtotime($rawFrom))
+            ? $rawFrom
+            : now()->toDateString();
+
+        $to = (preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawTo) && strtotime($rawTo))
+            ? $rawTo
+            : $from;
+
+        if ($from > $to) {
+            $temp = $from;
+            $from = $to;
+            $to = $temp;
+        }
+
+        $safeExt = in_array(strtolower($extension), ['pdf', 'xlsx'], true) ? strtolower($extension) : 'pdf';
+        $filename = "sales_report_{$from}_to_{$to}.{$safeExt}";
+
+        return [
+            'from' => $from,
+            'to' => $to,
+            'filename' => $filename,
+        ];
     }
 }

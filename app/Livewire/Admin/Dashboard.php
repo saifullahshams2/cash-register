@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -162,7 +163,7 @@ class Dashboard extends Component
             $this->successMessage = 'Product added successfully!';
             $this->errorMessage = null;
         } catch (\Throwable $e) {
-            $this->errorMessage = 'Failed to add product: '.$e->getMessage();
+            $this->errorMessage = $this->formatSafeErrorMessage($e, 'Failed to add product');
             $this->successMessage = null;
         }
     }
@@ -178,7 +179,7 @@ class Dashboard extends Component
                 $this->errorMessage = null;
             }
         } catch (\Throwable $e) {
-            $this->errorMessage = 'Failed to remove product: '.$e->getMessage();
+            $this->errorMessage = $this->formatSafeErrorMessage($e, 'Failed to remove product');
             $this->successMessage = null;
         }
     }
@@ -224,7 +225,7 @@ class Dashboard extends Component
             $this->successMessage = "{$roleLabel} account created successfully!";
             $this->errorMessage = null;
         } catch (\Throwable $e) {
-            $this->errorMessage = 'Failed to create user: '.$e->getMessage();
+            $this->errorMessage = $this->formatSafeErrorMessage($e, 'Failed to create user');
             $this->successMessage = null;
         }
     }
@@ -247,7 +248,7 @@ class Dashboard extends Component
                 $this->errorMessage = null;
             }
         } catch (\Throwable $e) {
-            $this->errorMessage = 'Failed to delete user: '.$e->getMessage();
+            $this->errorMessage = $this->formatSafeErrorMessage($e, 'Failed to delete user');
             $this->successMessage = null;
         }
     }
@@ -259,8 +260,8 @@ class Dashboard extends Component
         $this->validate([
             'companyName' => 'required|string|max:150',
             'siteTitle' => 'required|string|max:100',
-            'siteLogo' => 'nullable|image|max:2048',
-            'siteFavicon' => 'nullable|image|max:1024',
+            'siteLogo' => 'nullable|mimes:png,jpg,jpeg,webp|max:2048',
+            'siteFavicon' => 'nullable|mimes:png,ico,webp|max:1024',
         ], [], [
             'companyName' => 'company name',
             'siteTitle' => 'website title',
@@ -291,7 +292,7 @@ class Dashboard extends Component
             $this->successMessage = 'Website settings updated successfully!';
             $this->errorMessage = null;
         } catch (\Throwable $e) {
-            $this->errorMessage = 'Failed to save settings: '.$e->getMessage();
+            $this->errorMessage = $this->formatSafeErrorMessage($e, 'Failed to save settings');
             $this->successMessage = null;
         }
     }
@@ -335,7 +336,7 @@ class Dashboard extends Component
             $this->dbTestMessage = "Successfully connected to MySQL on {$this->mysqlHost}:{$this->mysqlPort} and verified database '{$this->mysqlDatabase}'!";
         } catch (\Throwable $e) {
             $this->dbTestStatus = 'error';
-            $this->dbTestMessage = 'MySQL connection failed: '.$e->getMessage();
+            $this->dbTestMessage = $this->formatSafeErrorMessage($e, 'MySQL connection failed');
         }
     }
 
@@ -361,7 +362,7 @@ class Dashboard extends Component
                 ]);
                 $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$this->mysqlDatabase}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
             } catch (\Throwable $e) {
-                $this->errorMessage = 'Cannot switch to MySQL: '.$e->getMessage();
+                $this->errorMessage = $this->formatSafeErrorMessage($e, 'Cannot switch to MySQL');
                 $this->successMessage = null;
 
                 return;
@@ -540,5 +541,12 @@ class Dashboard extends Component
             'monthlySales' => $this->monthlySales,
             'calendarSales' => $this->calendarSales,
         ])->layout('components.layouts.app');
+    }
+
+    protected function formatSafeErrorMessage(\Throwable $e, string $defaultMessage): string
+    {
+        Log::error($defaultMessage.': '.$e->getMessage());
+
+        return config('app.debug') ? $defaultMessage.': '.$e->getMessage() : $defaultMessage.'. Please try again.';
     }
 }

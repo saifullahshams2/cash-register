@@ -5,6 +5,9 @@
 
     RewriteEngine On
 
+    # Prevent direct access to all hidden files/directories (.env, .git, etc.)
+    RewriteRule (^\.|/\.) - [F,L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

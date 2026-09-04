@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\View;
 use PDO;
 use Throwable;
@@ -46,11 +47,26 @@ class InstallerController extends Controller
     {
         $this->prepareDirectoriesAndEnvironment();
 
-        $host = $request->input('host', '127.0.0.1');
-        $port = $request->input('port', '3306');
-        $database = $request->input('database', 'cash_register');
-        $username = $request->input('username', 'root');
+        if ($this->isAlreadyInstalled()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Application is already installed.',
+            ], 403);
+        }
+
+        $host = (string) $request->input('host', '127.0.0.1');
+        $port = (int) $request->input('port', 3306);
+        $database = (string) $request->input('database', 'cash_register');
+        $username = (string) $request->input('username', 'root');
         $password = (string) $request->input('password', '');
+
+        // SSRF protection: reject AWS/GCP/Azure cloud metadata addresses
+        if (in_array(strtolower(trim($host)), ['169.254.169.254', 'metadata.google.internal', 'instance-data'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Target database host is not permitted.',
+            ], 422);
+        }
 
         try {
             $dsn = "mysql:host={$host};port={$port};charset=utf8mb4";
@@ -66,9 +82,12 @@ class InstallerController extends Controller
                 'message' => "Connection successful! Database '{$database}' is ready.",
             ]);
         } catch (Throwable $e) {
+            Log::error('Installer database test failed: '.$e->getMessage());
+            $errorMsg = config('app.debug') ? $e->getMessage() : 'Database connection test failed. Please verify credentials and host.';
+
             return response()->json([
                 'success' => false,
-                'message' => 'Connection failed: '.$e->getMessage(),
+                'message' => 'Connection failed: '.$errorMsg,
             ], 422);
         }
     }
@@ -160,7 +179,16 @@ class InstallerController extends Controller
             Setting::set('company_name', trim($request->input('company_name')));
             Setting::set('site_title', trim($request->input('site_title')));
 
-            // 6. Write storage/installed lockfile
+            // 6. Compile production frontend assets if npm is available
+            try {
+                if (function_exists('shell_exec')) {
+                    @shell_exec('npm run build 2>&1');
+                }
+            } catch (Throwable $e) {
+                Log::warning('NPM build during installation skipped: '.$e->getMessage());
+            }
+
+            // 7. Write storage/installed lockfile
             file_put_contents(storage_path('installed'), 'INSTALLED_AT='.now()->toIso8601String()."\n");
 
             return view('installer::install', [
@@ -170,7 +198,10 @@ class InstallerController extends Controller
                 'dbConnection' => $dbConn,
             ]);
         } catch (Throwable $e) {
-            return back()->withInput()->with('error', 'Installation failed: '.$e->getMessage());
+            Log::error('Installation failed: '.$e->getMessage());
+            $errorMsg = config('app.debug') ? $e->getMessage() : 'An unexpected error occurred during installation. Please check server logs.';
+
+            return back()->withInput()->with('error', 'Installation failed: '.$errorMsg);
         }
     }
 

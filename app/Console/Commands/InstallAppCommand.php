@@ -55,6 +55,12 @@ class InstallAppCommand extends Command
         $this->info('Running database migrations...');
         $this->call('migrate', ['--force' => true]);
 
+        // 1b. Compile production frontend assets if npm is available
+        if (function_exists('shell_exec')) {
+            $this->info('Compiling production frontend assets with npm...');
+            @shell_exec('npm run build 2>&1');
+        }
+
         // 2. Create the first Administrator account (No email required, no default cashier)
         $adminName = (string) $this->option('admin-name');
         $adminUsername = (string) $this->option('admin-username');
