@@ -10,7 +10,7 @@ This is a manual cash register featuring cashier and admin accounts, simple prod
 
 - **PHP**: 8.3 or higher (PHP 8.5 compatible)
 - **Composer**: 2.x
-- **Node.js & npm**: 18.x or higher
+- **Node.js & npm**: 18.x or higher *(only required if installing from source)*
 - **Database Engine**: SQLite (default) or MySQL 8.0+ / MariaDB 10.4+
 
 ---
@@ -22,13 +22,33 @@ This is a manual cash register featuring cashier and admin accounts, simple prod
 >
 > Pointing the document root to the project root directory is a severe security vulnerability that exposes your `.env` file, database files, and PHP source code to the public web.
 
-### Production Setup Steps
+### Production Setup Options
+
+Choose one of the two options below to deploy the application:
+
+#### Option 1: Release ZIP Package (Recommended — Built-in Installer)
+The release package comes with pre-compiled assets and dependencies, allowing you to install without Node/npm.
+
+1. Download the latest release `.zip` archive from GitHub Releases.
+2. Upload and extract the ZIP contents to your server directory (e.g., `/var/www/cash-register`).
+3. Set the required directory permissions:
+   ```bash
+   chown -R www-data:www-data storage bootstrap/cache
+   chmod -R 775 storage bootstrap/cache
+   ```
+4. Point your web server document root to the `/public` folder.
+5. Open your domain in your web browser (or go to `http://your-domain.com/install`) and follow the on-screen installer wizard to configure the database and create your admin account.
+
+---
+
+#### Option 2: Manual Setup from Source / Git
+
 1. **Set directory permissions**:
    ```bash
    chown -R www-data:www-data storage bootstrap/cache
    chmod -R 775 storage bootstrap/cache
    ```
-2. **Install dependencies & build assets**:
+2. **Install dependencies & compile assets**:
    ```bash
    composer install --no-dev --optimize-autoloader
    npm install && npm run build
@@ -41,7 +61,7 @@ This is a manual cash register featuring cashier and admin accounts, simple prod
    # Or MySQL:
    php artisan app:install --database=mysql --admin-username=admin --admin-password=yourpassword --company="My Store"
    ```
-4. **Cache configuration & routes**:
+4. **Cache configuration & routes for performance**:
    ```bash
    php artisan config:cache
    php artisan route:cache
