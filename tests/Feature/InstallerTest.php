@@ -13,16 +13,24 @@ class InstallerTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected ?string $originalEnv = null;
+
     protected function setUp(): void
     {
         parent::setUp();
+        if (file_exists(base_path('.env'))) {
+            $this->originalEnv = file_get_contents(base_path('.env'));
+        }
         @unlink(storage_path('installed'));
     }
 
     protected function tearDown(): void
     {
-        // Restore installed state so subsequent tests aren't impacted
+        // Restore installed state and .env so subsequent tests aren't impacted
         @file_put_contents(storage_path('installed'), 'INSTALLED_FOR_TESTS');
+        if ($this->originalEnv !== null) {
+            file_put_contents(base_path('.env'), $this->originalEnv);
+        }
         parent::tearDown();
     }
 
@@ -114,5 +122,36 @@ class InstallerTest extends TestCase
 
         $loginResponse = $this->get('/login');
         $loginResponse->assertRedirect(route('installer.index'));
+    }
+
+    public function test_installer_generates_and_persists_app_key_when_missing_in_env(): void
+    {
+        // Simulate fresh install with empty APP_KEY in .env
+        $envPath = base_path('.env');
+        $sampleEnv = "APP_NAME=CashRegister\nAPP_ENV=production\nAPP_KEY=\nDB_CONNECTION=sqlite\n";
+        file_put_contents($envPath, $sampleEnv);
+
+        $payload = [
+            'db_connection' => 'sqlite',
+            'company_name' => 'Key Test Store',
+            'site_title' => 'KEY POS',
+            'app_url' => 'http://localhost:8000',
+            'app_env' => 'production',
+            'admin_name' => 'Key Admin',
+            'admin_username' => 'keyadmin',
+            'admin_password' => 'secret123',
+            'admin_password_confirmation' => 'secret123',
+        ];
+
+        $response = $this->post('/install/process', $payload);
+        $response->assertStatus(200);
+
+        // Verify .env now contains a valid base64 key
+        $updatedEnv = file_get_contents($envPath);
+        $this->assertMatchesRegularExpression('/^APP_KEY=base64:[A-Za-z0-9+\/]{43}=/m', $updatedEnv);
+
+        // Verify login page renders cleanly without 500 error
+        $loginResponse = $this->get('/login');
+        $loginResponse->assertStatus(200);
     }
 }

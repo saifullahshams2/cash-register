@@ -130,10 +130,17 @@ class InstallerController extends Controller
                 'DB_CONNECTION' => $dbConn,
             ];
 
-            // Auto-generate APP_KEY if empty so user never needs to run php artisan key:generate
-            $currentKey = config('app.key') ?: env('APP_KEY');
-            if (empty($currentKey) || $currentKey === 'base64:YOUR_APP_KEY_HERE') {
-                $envUpdates['APP_KEY'] = 'base64:'.base64_encode(random_bytes(32));
+            // Auto-generate APP_KEY if empty or missing on disk so user never needs to run php artisan key:generate
+            $envPath = base_path('.env');
+            $envContent = file_exists($envPath) ? (string) file_get_contents($envPath) : '';
+            $hasKeyOnDisk = preg_match('/^APP_KEY=(.+)$/m', $envContent, $keyMatches)
+                && ! empty(trim($keyMatches[1]))
+                && ! str_contains($keyMatches[1], 'YOUR_APP_KEY_HERE');
+
+            if (! $hasKeyOnDisk) {
+                $newKey = 'base64:'.base64_encode(random_bytes(32));
+                $envUpdates['APP_KEY'] = $newKey;
+                config(['app.key' => $newKey]);
             }
 
             if ($dbConn === 'sqlite') {
@@ -181,7 +188,7 @@ class InstallerController extends Controller
 
             // 6. Compile production frontend assets if npm is available
             try {
-                if (function_exists('shell_exec')) {
+                if (function_exists('shell_exec') && ! app()->environment('testing')) {
                     @shell_exec('npm run build 2>&1');
                 }
             } catch (Throwable $e) {
@@ -212,6 +219,9 @@ class InstallerController extends Controller
 
     protected function checkRequirements(): array
     {
+        $envPath = base_path('.env');
+        $envWritable = file_exists($envPath) ? is_writable($envPath) : is_writable(base_path());
+
         return [
             'PHP >= 8.3' => version_compare(PHP_VERSION, '8.3.0', '>='),
             'PDO Extension' => extension_loaded('pdo'),
@@ -223,6 +233,7 @@ class InstallerController extends Controller
             'XML Extension' => extension_loaded('xml'),
             'JSON Extension' => extension_loaded('json'),
             'ZIP Extension' => extension_loaded('zip'),
+            'Environment File Writable' => $envWritable,
             'Storage Writable' => is_writable(storage_path()),
             'Bootstrap Cache Writable' => is_writable(base_path('bootstrap/cache')),
             'Database Dir Writable' => is_writable(database_path()),
@@ -271,7 +282,15 @@ class InstallerController extends Controller
     {
         $envPath = base_path('.env');
         if (! file_exists($envPath)) {
-            copy(base_path('.env.example'), $envPath);
+            if (file_exists(base_path('.env.example'))) {
+                copy(base_path('.env.example'), $envPath);
+            } else {
+                touch($envPath);
+            }
+        }
+
+        if (! is_writable($envPath)) {
+            throw new \RuntimeException("The .env file at [{$envPath}] is not writable. Please verify file permissions.");
         }
 
         $content = file_get_contents($envPath);
@@ -289,6 +308,9 @@ class InstallerController extends Controller
             }
         }
 
-        file_put_contents($envPath, $content);
+        $written = file_put_contents($envPath, $content);
+        if ($written === false) {
+            throw new \RuntimeException("Failed to write updates to .env file at [{$envPath}].");
+        }
     }
 }
