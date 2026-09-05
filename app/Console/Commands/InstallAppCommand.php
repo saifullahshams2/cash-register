@@ -51,12 +51,24 @@ class InstallAppCommand extends Command
             }
         }
 
-        // 1. Run migrations
+        // 1. Ensure APP_KEY exists
+        $envPath = base_path('.env');
+        $envContent = file_exists($envPath) ? (string) file_get_contents($envPath) : '';
+        $hasKeyOnDisk = preg_match('/^APP_KEY=(.+)$/m', $envContent, $keyMatches)
+            && ! empty(trim($keyMatches[1]))
+            && ! str_contains($keyMatches[1], 'YOUR_APP_KEY_HERE');
+
+        if (! $hasKeyOnDisk) {
+            $this->info('Generating encryption key [APP_KEY]...');
+            $this->call('key:generate', ['--force' => true]);
+        }
+
+        // 2. Run migrations
         $this->info('Running database migrations...');
         $this->call('migrate', ['--force' => true]);
 
-        // 1b. Compile production frontend assets if npm is available
-        if (function_exists('shell_exec')) {
+        // 2b. Compile production frontend assets if npm is available
+        if (function_exists('shell_exec') && ! app()->environment('testing')) {
             $this->info('Compiling production frontend assets with npm...');
             @shell_exec('npm run build 2>&1');
         }
