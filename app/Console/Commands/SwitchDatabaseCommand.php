@@ -85,6 +85,12 @@ class SwitchDatabaseCommand extends Command
         $username = $this->option('username') ?: env('DB_USERNAME', 'root');
         $password = $this->option('password') !== null ? (string) $this->option('password') : (string) env('DB_PASSWORD', '');
 
+        if (! preg_match('/^[a-zA-Z0-9_-]{1,64}$/', $database)) {
+            $this->error("Invalid database name '{$database}'. Use only alphanumeric characters, underscores, and dashes.");
+
+            return Command::FAILURE;
+        }
+
         $this->info("Testing MySQL connection on {$host}:{$port} as '{$username}'...");
 
         try {
@@ -96,7 +102,8 @@ class SwitchDatabaseCommand extends Command
             ]);
 
             // Ensure database exists
-            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            $escapedDb = str_replace('`', '``', $database);
+            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$escapedDb}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
             $this->info("MySQL database '{$database}' is verified and ready.");
         } catch (Throwable $e) {
             $this->error("Failed to connect to MySQL: {$e->getMessage()}");
@@ -163,10 +170,12 @@ class SwitchDatabaseCommand extends Command
 
     protected function escapeEnvValue(string $value): string
     {
-        if (preg_match('/\s/', $value) || str_contains($value, '#') || str_contains($value, '"')) {
-            return '"'.addcslashes($value, '"').'"';
+        $sanitized = str_replace(["\r", "\n"], '', $value);
+
+        if (preg_match('/\s/', $sanitized) || str_contains($sanitized, '#') || str_contains($sanitized, '"')) {
+            return '"'.addcslashes($sanitized, '"').'"';
         }
 
-        return $value;
+        return $sanitized;
     }
 }

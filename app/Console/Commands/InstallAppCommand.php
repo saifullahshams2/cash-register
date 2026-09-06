@@ -79,15 +79,15 @@ class InstallAppCommand extends Command
         $adminPassword = (string) $this->option('admin-password');
 
         $this->info("Creating administrator account '{$adminUsername}'...");
-        User::updateOrCreate(
+        $adminUser = User::updateOrCreate(
             ['username' => $adminUsername],
             [
                 'name' => $adminName,
                 'password' => Hash::make($adminPassword),
-                'role' => User::ROLE_ADMIN,
                 'email_verified_at' => now(),
             ]
         );
+        $adminUser->forceFill(['role' => User::ROLE_ADMIN])->save();
 
         // 3. Configure store branding
         $companyName = (string) $this->option('company');

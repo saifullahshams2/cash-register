@@ -7,6 +7,7 @@ use App\Livewire\Auth\Login;
 use App\Livewire\Pos;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\SalesExcelExporter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,7 +23,14 @@ class SecurityHardeningTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        file_put_contents(storage_path('installed'), 'INSTALLED');
         $this->seed();
+    }
+
+    protected function tearDown(): void
+    {
+        file_put_contents(storage_path('installed'), 'INSTALLED');
+        parent::tearDown();
     }
 
     public function test_security_headers_are_present_on_web_responses(): void
@@ -34,6 +42,7 @@ class SecurityHardeningTest extends TestCase
         $response->assertHeader('X-Content-Type-Options', 'nosniff');
         $response->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->assertHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+        $response->assertHeader('Content-Security-Policy');
     }
 
     public function test_login_rate_limiting_locks_out_after_five_failed_attempts(): void
@@ -173,5 +182,82 @@ class SecurityHardeningTest extends TestCase
         $contentDisposition = $response->headers->get('Content-Disposition') ?? '';
         $this->assertStringNotContainsString('evil=true', $contentDisposition);
         $this->assertMatchesRegularExpression('/sales_report_\d{4}-\d{2}-\d{2}_to_\d{4}-\d{2}-\d{2}\.pdf/', $contentDisposition);
+    }
+
+    public function test_installer_test_db_rejects_sql_injection_and_invalid_database_names(): void
+    {
+        @unlink(storage_path('installed'));
+
+        try {
+            // Attempt SQL injection via backticks in database name
+            $response = $this->postJson('/install/test-db', [
+                'host' => '127.0.0.1',
+                'port' => 3306,
+                'database' => 'cash_register`; DROP TABLE users; -- ',
+                'username' => 'root',
+                'password' => '',
+            ]);
+
+            $response->assertStatus(422);
+            $this->assertStringContainsString('Invalid database name', $response->json('message'));
+        } finally {
+            file_put_contents(storage_path('installed'), 'INSTALLED');
+        }
+    }
+
+    public function test_installer_test_db_rejects_cloud_metadata_ssrf_and_invalid_ports(): void
+    {
+        @unlink(storage_path('installed'));
+
+        try {
+            // Metadata IP rejection
+            $response = $this->postJson('/install/test-db', [
+                'host' => '169.254.169.254',
+                'port' => 3306,
+                'database' => 'cash_register',
+            ]);
+            $response->assertStatus(422);
+            $this->assertStringContainsString('not permitted', $response->json('message'));
+
+            // Invalid port rejection
+            $portResponse = $this->postJson('/install/test-db', [
+                'host' => '127.0.0.1',
+                'port' => 70000,
+                'database' => 'cash_register',
+            ]);
+            $portResponse->assertStatus(422);
+            $this->assertStringContainsString('Invalid database port', $portResponse->json('message'));
+        } finally {
+            file_put_contents(storage_path('installed'), 'INSTALLED');
+        }
+    }
+
+    public function test_user_mass_assignment_does_not_set_role(): void
+    {
+        // Role is unguardable from mass-assignment payload
+        $user = User::create([
+            'name' => 'Cashier Test',
+            'username' => 'cashier_test',
+            'password' => 'secret123',
+            'role' => User::ROLE_ADMIN, // Malicious attempt to escalate role
+        ]);
+
+        // Must default to 'cashier' from DB default, NOT 'admin'
+        $this->assertEquals(User::ROLE_CASHIER, $user->fresh()->role);
+    }
+
+    public function test_pdf_export_blocks_arbitrary_file_read_via_path_traversal(): void
+    {
+        $admin = User::where('role', User::ROLE_ADMIN)->first();
+        $this->actingAs($admin);
+
+        // Set site_logo to sensitive file path traversal
+        Setting::set('site_logo', '/storage/../../../../.env');
+
+        $response = $this->get('/admin/export/pdf');
+        $response->assertStatus(200);
+
+        // Response binary must not contain raw .env contents (e.g. APP_KEY)
+        $this->assertStringNotContainsString('DB_CONNECTION', (string) $response->getContent());
     }
 }

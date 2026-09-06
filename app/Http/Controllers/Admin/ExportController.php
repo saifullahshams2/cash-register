@@ -38,20 +38,25 @@ class ExportController extends Controller
         $logoBase64 = null;
         if (! empty($siteLogo)) {
             $logoPath = null;
+            $allowedBase = realpath(storage_path('app/public'));
+
             if (str_contains($siteLogo, '/storage/')) {
-                $relativeStoragePath = substr($siteLogo, strpos($siteLogo, '/storage/') + 9);
-                $fullPath = storage_path('app/public/'.$relativeStoragePath);
-                if (file_exists($fullPath)) {
-                    $logoPath = $fullPath;
+                $relativeStoragePath = ltrim(substr($siteLogo, strpos($siteLogo, '/storage/') + 9), '/\\');
+                $candidatePath = realpath(storage_path('app/public/'.$relativeStoragePath));
+
+                // Path Traversal Guard: Ensure candidate resides inside allowed public storage directory
+                if ($candidatePath && $allowedBase && str_starts_with($candidatePath, $allowedBase) && is_file($candidatePath)) {
+                    $logoPath = $candidatePath;
                 }
-            } elseif (file_exists(public_path($siteLogo))) {
-                $logoPath = public_path($siteLogo);
             }
 
             if ($logoPath && file_exists($logoPath)) {
-                $type = pathinfo($logoPath, PATHINFO_EXTENSION);
-                $data = file_get_contents($logoPath);
-                $logoBase64 = 'data:image/'.$type.';base64,'.base64_encode($data);
+                $mime = @mime_content_type($logoPath);
+                if (in_array($mime, ['image/png', 'image/jpeg', 'image/webp'], true)) {
+                    $type = pathinfo($logoPath, PATHINFO_EXTENSION);
+                    $data = file_get_contents($logoPath);
+                    $logoBase64 = 'data:image/'.$type.';base64,'.base64_encode($data);
+                }
             }
         }
 

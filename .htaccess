@@ -1,19 +1,10 @@
 <IfModule mod_rewrite.c>
-    <IfModule mod_negotiation.c>
-        Options -MultiViews -Indexes
-    </IfModule>
-
     RewriteEngine On
 
-    # Prevent direct access to all hidden files/directories (.env, .git, etc.)
-    RewriteRule (^\.|/\.) - [F,L]
+    # Block direct access to sensitive files and directories
+    RewriteRule ^(\.env|\.git|composer\.(json|lock)|artisan|database/|storage/logs/|.*\.zip$) - [F,L,NC]
 
-    # Prevent direct access to databases, logs, archives, backups, and config files
-    RewriteRule \.(sqlite|sqlite3|db|log|zip|tar|gz|sql|bak|old|swp)$ - [F,L,NC]
-    RewriteRule ^(database/|storage/logs/|storage/framework/|storage/app/private/) - [F,L,NC]
-    RewriteRule ^(composer\.(json|lock)|package(-lock)?\.json|artisan|phpunit\.xml|vite\.config\.js|boost\.json|skills\.md|AGENTS\.md|CLAUDE\.md|README\.md) - [F,L,NC]
-
-    # If the request is not already pointing to /public
+    # Forward non-public asset requests to public/
     RewriteCond %{REQUEST_URI} !^/public/
-    RewriteRule ^(.*)$ public/$1 [L,QSA]
+    RewriteRule ^(.*)$ public/ [L]
 </IfModule>

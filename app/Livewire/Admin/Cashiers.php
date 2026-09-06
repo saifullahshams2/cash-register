@@ -36,13 +36,13 @@ class Cashiers extends Component
         try {
             $userRole = in_array($this->role, [User::ROLE_ADMIN, User::ROLE_CASHIER], true) ? $this->role : User::ROLE_CASHIER;
 
-            User::create([
+            $user = User::create([
                 'name' => trim($this->name),
                 'username' => trim($this->username),
                 'password' => Hash::make($this->password),
-                'role' => $userRole,
                 'email_verified_at' => now(),
             ]);
+            $user->forceFill(['role' => $userRole])->save();
 
             $roleLabel = ucfirst($userRole);
             $this->reset(['name', 'username', 'role', 'password', 'password_confirmation']);

@@ -60,11 +60,28 @@ class InstallerController extends Controller
         $username = (string) $request->input('username', 'root');
         $password = (string) $request->input('password', '');
 
-        // SSRF protection: reject AWS/GCP/Azure cloud metadata addresses
-        if (in_array(strtolower(trim($host)), ['169.254.169.254', 'metadata.google.internal', 'instance-data'], true)) {
+        // SSRF protection: reject AWS/GCP/Azure/Alibaba cloud metadata addresses
+        $resolvedIp = gethostbyname($host);
+        if (in_array(strtolower(trim($host)), ['169.254.169.254', 'metadata.google.internal', 'instance-data', '100.100.100.200'], true)
+            || $resolvedIp === '169.254.169.254'
+            || str_starts_with($resolvedIp, '169.254.')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Target database host is not permitted.',
+            ], 422);
+        }
+
+        if ($port < 1 || $port > 65535) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid database port specified.',
+            ], 422);
+        }
+
+        if (! preg_match('/^[a-zA-Z0-9_-]{1,64}$/', $database)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid database name. Use only alphanumeric characters, underscores, and hyphens (max 64 characters).',
             ], 422);
         }
 
@@ -75,7 +92,8 @@ class InstallerController extends Controller
                 PDO::ATTR_TIMEOUT => 4,
             ]);
 
-            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            $escapedDb = str_replace('`', '``', $database);
+            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$escapedDb}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
             return response()->json([
                 'success' => true,
@@ -113,8 +131,8 @@ class InstallerController extends Controller
 
         if ($request->input('db_connection') === 'mysql') {
             $rules['mysql_host'] = 'required|string';
-            $rules['mysql_port'] = 'required|numeric';
-            $rules['mysql_database'] = 'required|string';
+            $rules['mysql_port'] = 'required|numeric|min:1|max:65535';
+            $rules['mysql_database'] = ['required', 'string', 'max:64', 'regex:/^[a-zA-Z0-9_-]+$/'];
             $rules['mysql_username'] = 'required|string';
         }
 
@@ -161,7 +179,8 @@ class InstallerController extends Controller
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_TIMEOUT => 4,
                 ]);
-                $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$envUpdates['DB_DATABASE']}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                $escapedDb = str_replace('`', '``', $envUpdates['DB_DATABASE']);
+                $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$escapedDb}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
             }
 
             // 1. Update .env
@@ -172,15 +191,15 @@ class InstallerController extends Controller
             Artisan::call('migrate', ['--force' => true]);
 
             // 4. Create the First Admin Account (NO email required, NO default cashier)
-            User::updateOrCreate(
+            $adminUser = User::updateOrCreate(
                 ['username' => $request->input('admin_username')],
                 [
                     'name' => $request->input('admin_name'),
                     'password' => Hash::make($request->input('admin_password')),
-                    'role' => User::ROLE_ADMIN,
                     'email_verified_at' => now(),
                 ]
             );
+            $adminUser->forceFill(['role' => User::ROLE_ADMIN])->save();
 
             // 5. Store Company and Site Title settings
             Setting::set('company_name', trim($request->input('company_name')));
@@ -262,7 +281,7 @@ class InstallerController extends Controller
 
         foreach ($folders as $dir) {
             if (! is_dir($dir)) {
-                @mkdir($dir, 0777, true);
+                @mkdir($dir, 0775, true);
             }
         }
 
@@ -296,9 +315,11 @@ class InstallerController extends Controller
         $content = file_get_contents($envPath);
 
         foreach ($data as $key => $value) {
-            $escapedValue = (preg_match('/\s/', $value) || str_contains($value, '#') || str_contains($value, '"'))
-                ? '"'.addcslashes($value, '"').'"'
-                : $value;
+            $sanitized = str_replace(["\r", "\n"], '', (string) $value);
+
+            $escapedValue = (preg_match('/\s/', $sanitized) || str_contains($sanitized, '#') || str_contains($sanitized, '"'))
+                ? '"'.addcslashes($sanitized, '"').'"'
+                : $sanitized;
 
             $pattern = "/^#?\s*({$key}\s*=.*)$/m";
             if (preg_match($pattern, $content)) {

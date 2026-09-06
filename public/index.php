@@ -35,7 +35,7 @@ if (! file_exists($installedLock)) {
     ];
     foreach ($storageDirs as $dir) {
         if (! is_dir($dir)) {
-            @mkdir($dir, 0777, true);
+            @mkdir($dir, 0775, true);
         }
     }
 
@@ -69,7 +69,7 @@ try {
         echo '<div class="card"><h1>Installation Pre-Flight Issue</h1>';
         echo '<p>The application encountered an issue during startup:</p>';
         echo '<pre>'.htmlspecialchars($e->getMessage())."\n\nFile: ".htmlspecialchars($e->getFile()).':'.$e->getLine().'</pre>';
-        echo '<p>If this is a permission error, please ensure <strong>storage/</strong> and <strong>bootstrap/cache/</strong> are writeable (chmod 775 or 777).</p>';
+        echo '<p>If this is a permission error, please ensure <strong>storage/</strong> and <strong>bootstrap/cache/</strong> are writeable (chmod 775).</p>';
         echo '</div></body></html>';
         exit;
     }

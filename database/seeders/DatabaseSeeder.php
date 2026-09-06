@@ -16,29 +16,33 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Default Admin User
-        User::updateOrCreate(
+        if (app()->isProduction()) {
+            return;
+        }
+
+        // Default Admin User (Local Testing Only)
+        $admin = User::updateOrCreate(
             ['email' => 'admin@pos.test'],
             [
                 'username' => 'admin',
                 'name' => 'Admin User',
                 'password' => Hash::make('password'),
-                'role' => User::ROLE_ADMIN,
                 'email_verified_at' => now(),
             ]
         );
+        $admin->forceFill(['role' => User::ROLE_ADMIN])->save();
 
-        // Default Cashier User
-        User::updateOrCreate(
+        // Default Cashier User (Local Testing Only)
+        $cashier = User::updateOrCreate(
             ['email' => 'cashier@pos.test'],
             [
                 'username' => 'cashier',
                 'name' => 'Cashier 01',
                 'password' => Hash::make('password'),
-                'role' => User::ROLE_CASHIER,
                 'email_verified_at' => now(),
             ]
         );
+        $cashier->forceFill(['role' => User::ROLE_CASHIER])->save();
 
         $this->call([
             ProductSeeder::class,

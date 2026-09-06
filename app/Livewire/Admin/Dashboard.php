@@ -211,13 +211,13 @@ class Dashboard extends Component
                 ? $this->newUserRole
                 : User::ROLE_CASHIER;
 
-            User::create([
+            $user = User::create([
                 'name' => trim($this->newUserName),
                 'username' => trim($this->newUserUsername),
-                'role' => $role,
                 'password' => Hash::make($this->newUserPassword),
                 'email_verified_at' => now(),
             ]);
+            $user->forceFill(['role' => $role])->save();
 
             $roleLabel = ucfirst($role);
             $this->reset([
@@ -335,10 +335,21 @@ class Dashboard extends Component
     {
         $this->validate([
             'mysqlHost' => 'required|string',
-            'mysqlPort' => 'required|numeric',
-            'mysqlDatabase' => 'required|string',
+            'mysqlPort' => 'required|numeric|min:1|max:65535',
+            'mysqlDatabase' => ['required', 'string', 'max:64', 'regex:/^[a-zA-Z0-9_-]+$/'],
             'mysqlUsername' => 'required|string',
         ]);
+
+        $host = strtolower(trim($this->mysqlHost));
+        $resolvedIp = gethostbyname($host);
+        if (in_array($host, ['169.254.169.254', 'metadata.google.internal', 'instance-data', '100.100.100.200'], true)
+            || $resolvedIp === '169.254.169.254'
+            || str_starts_with($resolvedIp, '169.254.')) {
+            $this->dbTestStatus = 'error';
+            $this->dbTestMessage = 'Target database host is not permitted.';
+
+            return;
+        }
 
         try {
             $dsn = "mysql:host={$this->mysqlHost};port={$this->mysqlPort};charset=utf8mb4";
@@ -346,7 +357,8 @@ class Dashboard extends Component
                 \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                 \PDO::ATTR_TIMEOUT => 3,
             ]);
-            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$this->mysqlDatabase}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            $escapedDb = str_replace('`', '``', $this->mysqlDatabase);
+            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$escapedDb}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
             $this->dbTestStatus = 'success';
             $this->dbTestMessage = "Successfully connected to MySQL on {$this->mysqlHost}:{$this->mysqlPort} and verified database '{$this->mysqlDatabase}'!";
@@ -365,8 +377,8 @@ class Dashboard extends Component
         if ($driver === 'mysql') {
             $this->validate([
                 'mysqlHost' => 'required|string',
-                'mysqlPort' => 'required|numeric',
-                'mysqlDatabase' => 'required|string',
+                'mysqlPort' => 'required|numeric|min:1|max:65535',
+                'mysqlDatabase' => ['required', 'string', 'max:64', 'regex:/^[a-zA-Z0-9_-]+$/'],
                 'mysqlUsername' => 'required|string',
             ]);
 
@@ -376,7 +388,8 @@ class Dashboard extends Component
                     \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                     \PDO::ATTR_TIMEOUT => 3,
                 ]);
-                $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$this->mysqlDatabase}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                $escapedDb = str_replace('`', '``', $this->mysqlDatabase);
+                $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$escapedDb}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
             } catch (\Throwable $e) {
                 $this->errorMessage = $this->formatSafeErrorMessage($e, 'Cannot switch to MySQL');
                 $this->successMessage = null;
@@ -426,9 +439,11 @@ class Dashboard extends Component
         $content = file_get_contents($envPath);
 
         foreach ($data as $key => $value) {
-            $escapedValue = (preg_match('/\s/', $value) || str_contains($value, '#') || str_contains($value, '"'))
-                ? '"'.addcslashes($value, '"').'"'
-                : $value;
+            $sanitized = str_replace(["\r", "\n"], '', (string) $value);
+
+            $escapedValue = (preg_match('/\s/', $sanitized) || str_contains($sanitized, '#') || str_contains($sanitized, '"'))
+                ? '"'.addcslashes($sanitized, '"').'"'
+                : $sanitized;
 
             $pattern = "/^#?\s*({$key}\s*=.*)$/m";
             if (preg_match($pattern, $content)) {

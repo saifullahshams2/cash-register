@@ -11,8 +11,8 @@ use Illuminate\Support\Facades\Route;
 // Production Installer Routes (Safe & deletable: if app/Installer is deleted, routes simply vanish)
 if (file_exists(app_path('Installer/InstallerController.php'))) {
     Route::get('/install', [InstallerController::class, 'index'])->name('installer.index');
-    Route::post('/install/test-db', [InstallerController::class, 'testDatabase'])->name('installer.test-db');
-    Route::post('/install/process', [InstallerController::class, 'process'])->name('installer.process');
+    Route::post('/install/test-db', [InstallerController::class, 'testDatabase'])->middleware('throttle:15,1')->name('installer.test-db');
+    Route::post('/install/process', [InstallerController::class, 'process'])->middleware('throttle:5,1')->name('installer.process');
 }
 
 // Guest Authentication Routes
@@ -45,8 +45,10 @@ Route::middleware('auth')->group(function () {
             return redirect()->route('admin.dashboard', ['tab' => 'products']);
         })->name('products');
 
-        // Sales Report Exports
-        Route::get('/export/pdf', [ExportController::class, 'exportPdf'])->name('export.pdf');
-        Route::get('/export/xlsx', [ExportController::class, 'exportXlsx'])->name('export.xlsx');
+        // Sales Report Exports (Throttled to protect CPU / memory)
+        Route::middleware('throttle:20,1')->group(function () {
+            Route::get('/export/pdf', [ExportController::class, 'exportPdf'])->name('export.pdf');
+            Route::get('/export/xlsx', [ExportController::class, 'exportXlsx'])->name('export.xlsx');
+        });
     });
 });
