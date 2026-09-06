@@ -4,6 +4,8 @@ A lightweight manual cash register and POS application designed for anyone who s
 
 Features cashier and admin accounts, simple product management, and comprehensive sales analytics with export options (PDF & Excel).
 
+![Preview](screenshots/preview.png)
+
 ---
 
 ## System Requirements
