@@ -119,19 +119,6 @@ When running `php artisan db:seed` in local environment:
 
 ---
 
-## Security Architecture
-
-The application includes enterprise-grade cybersecurity controls:
-- **Strict Role Separation**: Route-level middleware (`admin` and `cashier`) enforces strict access boundaries.
-- **SQL & Parameter Injection Defense**: Database name identifiers and raw database routines enforce regex bounds and safe escaping.
-- **SSRF & Network Probing Protections**: Database connection testers restrict private ranges, loopbacks, and cloud metadata addresses (`169.254.169.254`).
-- **File System & Export Hardening**: DomPDF logo loading enforces `realpath` confinement to public storage and validates MIME types. Spreadsheet exports sanitize formula injection characters (`=`, `+`, `-`, `@`, `|`).
-- **Web Server Protection**: Includes root and public `.htaccess` security rules blocking direct access to `.env`, SQLite files, source code, and release archives.
-- **Security Headers**: Transmits `Content-Security-Policy`, `Strict-Transport-Security` (HSTS), `X-Frame-Options` (`SAMEORIGIN`), and `X-Content-Type-Options` (`nosniff`).
-- **Brute-Force Rate Limiting**: Throttles failed logins, database test calls, and computational report exports.
-
----
-
 ## License
 
 Open-source software licensed under the [MIT license](LICENSE).
