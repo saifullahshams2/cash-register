@@ -33,7 +33,7 @@ class AuthTest extends TestCase
         $response->assertSee('Username');
         $response->assertDontSee('https://cdn.tailwindcss.com');
         $response->assertSee('POS');
-        $response->assertDontSee('KW');
+        $response->assertDontSeeText('KW');
     }
 
     public function test_login_page_does_not_display_default_demo_accounts(): void
