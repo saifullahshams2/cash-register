@@ -48,6 +48,6 @@ class Product extends Model
 
     public function getFormattedPriceAttribute(): string
     {
-        return number_format($this->price, 3, '.', '').' KWD';
+        return Setting::formatMoney($this->price).' '.Setting::getCurrency();
     }
 }

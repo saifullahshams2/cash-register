@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\Setting;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -17,6 +18,10 @@ class Pos extends Component
     /** @var array<int|string, array{id: int, name: string, code: string, quantity: int}> */
     public array $cart = [];
 
+    public string $currency = 'KWD';
+
+    public int $currencyDecimals = 3;
+
     // Numpad input buffer for manual total price
     public string $totalDigits = '';
 
@@ -28,7 +33,7 @@ class Pos extends Component
 
     public float $taxRate = 0.000;
 
-    // Payment method: null until explicitly clicked ('CASH' or 'KNET')
+    // Payment method: null until explicitly clicked ('CASH', 'CARD', or 'KNET')
     public ?string $paymentMethod = null;
 
     // Held carts
@@ -47,9 +52,12 @@ class Pos extends Component
             return redirect()->route('admin.dashboard');
         }
 
+        $this->currency = Setting::getCurrency();
+        $this->currencyDecimals = Setting::getCurrencyDecimals();
+
         $this->totalDigits = '';
-        $this->totalInput = '0.000';
-        $this->tenderedInput = '0.000';
+        $this->totalInput = number_format(0, $this->currencyDecimals, '.', '');
+        $this->tenderedInput = number_format(0, $this->currencyDecimals, '.', '');
         $this->paymentMethod = null;
     }
 
@@ -106,8 +114,8 @@ class Pos extends Component
     {
         $this->cart = [];
         $this->totalDigits = '';
-        $this->totalInput = '0.000';
-        $this->tenderedInput = '0.000';
+        $this->totalInput = number_format(0, $this->currencyDecimals, '.', '');
+        $this->tenderedInput = number_format(0, $this->currencyDecimals, '.', '');
         $this->paymentMethod = null;
         $this->notify('Cart cleared', 'info');
     }
@@ -117,7 +125,7 @@ class Pos extends Component
     public function setExact(): void
     {
         $total = $this->getTotalProperty();
-        $this->tenderedInput = number_format($total, 3, '.', '');
+        $this->tenderedInput = number_format($total, $this->currencyDecimals, '.', '');
         if ($this->paymentMethod === null) {
             $this->paymentMethod = 'CASH';
         }
@@ -126,14 +134,14 @@ class Pos extends Component
     public function addTender(float $amount): void
     {
         $current = (float) $this->tenderedInput;
-        $newAmount = round($current + $amount, 3);
-        $this->tenderedInput = number_format($newAmount, 3, '.', '');
+        $newAmount = round($current + $amount, $this->currencyDecimals);
+        $this->tenderedInput = number_format($newAmount, $this->currencyDecimals, '.', '');
         $this->paymentMethod = 'CASH';
     }
 
     public function clearTender(): void
     {
-        $this->tenderedInput = '0.000';
+        $this->tenderedInput = number_format(0, $this->currencyDecimals, '.', '');
     }
 
     public function setDenomination(float $amount): void
@@ -193,10 +201,11 @@ class Pos extends Component
     {
         if ($this->totalDigits === '' || (int) $this->totalDigits === 0) {
             $this->totalDigits = '';
-            $this->totalInput = '0.000';
+            $this->totalInput = number_format(0, $this->currencyDecimals, '.', '');
         } else {
-            $fils = (int) $this->totalDigits;
-            $this->totalInput = number_format($fils / 1000, 3, '.', '');
+            $units = (int) $this->totalDigits;
+            $divisor = 10 ** $this->currencyDecimals;
+            $this->totalInput = number_format($units / $divisor, $this->currencyDecimals, '.', '');
         }
 
         $this->autoUpdateExactIfMatched();
@@ -206,7 +215,7 @@ class Pos extends Component
     {
         $this->paymentMethod = $method;
 
-        if ($method === 'KNET') {
+        if (in_array($method, ['CARD', 'KNET'], true)) {
             $this->setExact();
         }
     }
@@ -233,8 +242,8 @@ class Pos extends Component
 
         $this->cart = [];
         $this->totalDigits = '';
-        $this->totalInput = '0.000';
-        $this->tenderedInput = '0.000';
+        $this->totalInput = number_format(0, $this->currencyDecimals, '.', '');
+        $this->tenderedInput = number_format(0, $this->currencyDecimals, '.', '');
         $this->paymentMethod = null;
         $this->notify('Order held ('.count($this->heldCarts).' in queue)', 'info');
     }
@@ -244,7 +253,7 @@ class Pos extends Component
         if (isset($this->heldCarts[$index])) {
             $this->cart = $this->heldCarts[$index]['cart'];
             $this->totalDigits = $this->heldCarts[$index]['totalDigits'] ?? '';
-            $this->totalInput = $this->heldCarts[$index]['totalInput'] ?? '0.000';
+            $this->totalInput = $this->heldCarts[$index]['totalInput'] ?? number_format(0, $this->currencyDecimals, '.', '');
             array_splice($this->heldCarts, $index, 1);
             $this->paymentMethod = null;
             $this->notify('Held order restored', 'success');
@@ -270,7 +279,7 @@ class Pos extends Component
 
         if (empty($this->paymentMethod)) {
             $this->isProcessing = false;
-            $this->notify('Please select Cash or K-Net before checkout', 'error');
+            $this->notify('Please select Cash or Card before checkout', 'error');
 
             return;
         }
@@ -295,14 +304,14 @@ class Pos extends Component
         $tendered = (float) $this->tenderedInput;
 
         if ($this->paymentMethod === 'CASH' && $tendered < $total) {
-            $shortage = number_format($total - $tendered, 3, '.', '');
+            $shortage = number_format($total - $tendered, $this->currencyDecimals, '.', '');
             $this->isProcessing = false;
-            $this->notify("Cash is short by {$shortage} KWD", 'error');
+            $this->notify("Cash is short by {$shortage} {$this->currency}", 'error');
 
             return;
         }
 
-        $change = max(0, round($tendered - $total, 3));
+        $change = max(0, round($tendered - $total, $this->currencyDecimals));
 
         try {
             DB::beginTransaction();
@@ -343,12 +352,12 @@ class Pos extends Component
             // Reset cart & inputs immediately
             $this->cart = [];
             $this->totalDigits = '';
-            $this->totalInput = '0.000';
-            $this->tenderedInput = '0.000';
+            $this->totalInput = number_format(0, $this->currencyDecimals, '.', '');
+            $this->tenderedInput = number_format(0, $this->currencyDecimals, '.', '');
             $this->paymentMethod = null;
 
-            $changeFormatted = number_format($change, 3, '.', '');
-            $this->notify("Saved {$orderNumber} | Change: {$changeFormatted} KWD", 'success');
+            $changeFormatted = number_format($change, $this->currencyDecimals, '.', '');
+            $this->notify("Saved {$orderNumber} | Change: {$changeFormatted} {$this->currency}", 'success');
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('POS Checkout failed: '.$e->getMessage());
@@ -363,7 +372,7 @@ class Pos extends Component
 
     public function getTotalProperty(): float
     {
-        return round((float) $this->totalInput, 3);
+        return round((float) $this->totalInput, $this->currencyDecimals);
     }
 
     public function getChangeDueProperty(): float
@@ -371,7 +380,7 @@ class Pos extends Component
         $tendered = (float) $this->tenderedInput;
         $total = $this->getTotalProperty();
 
-        return round($tendered - $total, 3);
+        return round($tendered - $total, $this->currencyDecimals);
     }
 
     public function getTotalQuantityProperty(): int
@@ -379,9 +388,57 @@ class Pos extends Component
         return (int) array_sum(array_column($this->cart, 'quantity'));
     }
 
+    /**
+     * @return array<int, array{amount: float, label: string}>
+     */
+    public function getQuickDenominationsProperty(): array
+    {
+        if ($this->currencyDecimals === 0) {
+            return [
+                ['amount' => 100.0, 'label' => '+100'],
+                ['amount' => 50.0, 'label' => '+50'],
+                ['amount' => 20.0, 'label' => '+20'],
+                ['amount' => 10.0, 'label' => '+10'],
+                ['amount' => 5.0, 'label' => '+5'],
+                ['amount' => 1.0, 'label' => '+1'],
+            ];
+        }
+
+        if ($this->currencyDecimals === 1) {
+            return [
+                ['amount' => 20.0, 'label' => '+20'],
+                ['amount' => 10.0, 'label' => '+10'],
+                ['amount' => 5.0, 'label' => '+5'],
+                ['amount' => 1.0, 'label' => '+1'],
+                ['amount' => 0.5, 'label' => '+0.5'],
+                ['amount' => 0.1, 'label' => '+0.1'],
+            ];
+        }
+
+        if ($this->currencyDecimals === 2) {
+            return [
+                ['amount' => 20.0, 'label' => '+20'],
+                ['amount' => 10.0, 'label' => '+10'],
+                ['amount' => 5.0, 'label' => '+5'],
+                ['amount' => 1.0, 'label' => '+1'],
+                ['amount' => 0.50, 'label' => '+0.50'],
+                ['amount' => 0.25, 'label' => '+0.25'],
+            ];
+        }
+
+        return [
+            ['amount' => 20.0, 'label' => '+20'],
+            ['amount' => 10.0, 'label' => '+10'],
+            ['amount' => 5.0, 'label' => '+5'],
+            ['amount' => 1.0, 'label' => '+1'],
+            ['amount' => 0.500, 'label' => '+0.500'],
+            ['amount' => 0.250, 'label' => '+0.250'],
+        ];
+    }
+
     private function autoUpdateExactIfMatched(): void
     {
-        if ($this->paymentMethod === 'KNET') {
+        if (in_array($this->paymentMethod, ['CARD', 'KNET'], true)) {
             $this->setExact();
         }
     }
@@ -407,6 +464,9 @@ class Pos extends Component
             'products' => $products,
             'total' => $this->getTotalProperty(),
             'changeDue' => $this->getChangeDueProperty(),
+            'currency' => $this->currency,
+            'currencyDecimals' => $this->currencyDecimals,
+            'quickDenominations' => $this->quickDenominations,
         ])->layout('components.layouts.app');
     }
 }

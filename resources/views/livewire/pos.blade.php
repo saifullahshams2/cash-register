@@ -220,7 +220,7 @@
                 </div>
                 <div class="flex items-center gap-1.5">
                     <span class="font-mono text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">{{ $totalInput }}</span>
-                    <span class="text-xs sm:text-sm font-bold text-slate-600">KWD</span>
+                    <span class="text-xs sm:text-sm font-bold text-slate-600">{{ $currency }}</span>
                 </div>
             </div>
 
@@ -261,12 +261,16 @@
                 <div class="w-[36%] flex flex-col gap-1.5 h-full">
                     <!-- Denomination Multi-Selector Buttons (Cumulative addition) -->
                     <div class="grid grid-cols-2 gap-1.5 flex-1">
-                        <button wire:click="addTender(20.000)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs sm:text-sm text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 20 KWD to Cash">+20</button>
-                        <button wire:click="addTender(10.000)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs sm:text-sm text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 10 KWD to Cash">+10</button>
-                        <button wire:click="addTender(5.000)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs sm:text-sm text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 5 KWD to Cash">+5</button>
-                        <button wire:click="addTender(1.000)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs sm:text-sm text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 1 KWD to Cash">+1</button>
-                        <button wire:click="addTender(0.500)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs sm:text-sm text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 0.500 KWD to Cash">+0.500</button>
-                        <button wire:click="addTender(0.250)" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs sm:text-sm text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" title="Add 0.250 KWD to Cash">+0.250</button>
+                        @foreach($quickDenominations as $denom)
+                            <button 
+                                wire:click="addTender({{ $denom['amount'] }})" 
+                                type="button" 
+                                class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs sm:text-sm text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" 
+                                title="Add {{ $denom['amount'] }} {{ $currency }} to Cash"
+                            >
+                                {{ $denom['label'] }}
+                            </button>
+                        @endforeach
                     </div>
 
                     <!-- EXACT Button (Higher / Prominent) -->
@@ -282,7 +286,7 @@
 
             </div>
 
-            <!-- C. PAYMENT METHOD BUTTONS: 1. CASH, 2. K-NET -->
+            <!-- C. PAYMENT METHOD BUTTONS: 1. CASH, 2. CARD -->
             <div class="grid grid-cols-2 gap-2 shrink-0 pt-1">
                 <!-- 1. CASH BUTTON -->
                 <button 
@@ -299,13 +303,13 @@
 
                 <!-- 2. CARD BUTTON -->
                 <button 
-                    wire:click="setPaymentMethod('KNET')"
+                    wire:click="setPaymentMethod('CARD')"
                     type="button"
-                    class="py-3 px-4 rounded-xl border-2 font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer shadow-xs {{ $paymentMethod === 'KNET' ? 'bg-slate-900 border-slate-900 text-white ring-2 ring-slate-900/30' : 'bg-white border-slate-300 text-slate-800 hover:border-slate-500 hover:bg-slate-50' }}"
+                    class="py-3 px-4 rounded-xl border-2 font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer shadow-xs {{ in_array($paymentMethod, ['CARD', 'KNET']) ? 'bg-slate-900 border-slate-900 text-white ring-2 ring-slate-900/30' : 'bg-white border-slate-300 text-slate-800 hover:border-slate-500 hover:bg-slate-50' }}"
                 >
                     <span class="text-base sm:text-lg">💳</span>
                     <span>2. CARD</span>
-                    @if($paymentMethod === 'KNET')
+                    @if(in_array($paymentMethod, ['CARD', 'KNET']))
                         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                     @endif
                 </button>
@@ -315,7 +319,7 @@
             <div class="shrink-0 pt-1">
                 @if(empty($paymentMethod))
                     <button 
-                        type="button"
+                        type="button" 
                         disabled
                         class="w-full py-3.5 rounded-xl bg-slate-200 text-slate-400 font-bold text-xs sm:text-sm tracking-wider uppercase border border-slate-300 cursor-not-allowed flex items-center justify-center gap-2 shadow-2xs"
                     >
@@ -328,9 +332,9 @@
                         @disabled(count($cart) === 0)
                         class="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-extrabold text-sm sm:text-base tracking-wide shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
                     >
-                        <span>CHECKOUT ({{ $paymentMethod }})</span>
+                        <span>CHECKOUT ({{ $paymentMethod === 'KNET' ? 'CARD' : $paymentMethod }})</span>
                         <span class="font-mono bg-white/20 px-2.5 py-0.5 rounded-md text-xs sm:text-sm">
-                            {{ number_format($total, 3) }} KWD
+                            {{ number_format($total, $currencyDecimals) }} {{ $currency }}
                         </span>
                         <span class="text-[10px] sm:text-xs opacity-80">(Enter)</span>
                     </button>
@@ -416,9 +420,9 @@
                         </div>
                         <div class="text-right">
                             <span class="font-mono font-black text-2xl sm:text-3xl text-white block leading-tight">
-                                {{ number_format($total, 3) }}
+                                {{ number_format($total, $currencyDecimals) }}
                             </span>
-                            <span class="text-[10px] sm:text-xs font-bold text-slate-300">KWD</span>
+                            <span class="text-[10px] sm:text-xs font-bold text-slate-300">{{ $currency }}</span>
                         </div>
                     </div>
 
@@ -430,9 +434,9 @@
                         </div>
                         <div class="text-right">
                             <span class="font-mono font-bold text-xl sm:text-2xl text-slate-900 block leading-tight">
-                                {{ number_format((float) $tenderedInput, 3) }}
+                                {{ number_format((float) $tenderedInput, $currencyDecimals) }}
                             </span>
-                            <span class="text-[10px] sm:text-xs font-bold text-slate-500">KWD</span>
+                            <span class="text-[10px] sm:text-xs font-bold text-slate-500">{{ $currency }}</span>
                         </div>
                     </div>
 
@@ -444,9 +448,9 @@
                         </div>
                         <div class="text-right">
                             <span class="font-mono font-black text-xl sm:text-2xl block leading-tight {{ $changeDue >= 0 ? 'text-emerald-700' : 'text-rose-600' }}">
-                                {{ number_format(max(0, $changeDue), 3) }}
+                                {{ number_format(max(0, $changeDue), $currencyDecimals) }}
                             </span>
-                            <span class="text-[10px] sm:text-xs font-bold text-slate-600">KWD</span>
+                            <span class="text-[10px] sm:text-xs font-bold text-slate-600">{{ $currency }}</span>
                         </div>
                     </div>
 
@@ -460,7 +464,7 @@
                             @click="mobileTab = 'register'"
                             class="w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs tracking-wider uppercase border border-slate-300 flex items-center justify-center gap-1.5 transition cursor-pointer"
                         >
-                            <span>👉 Select Payment Method (Cash / K-Net)</span>
+                            <span>👉 Select Payment Method (Cash / Card)</span>
                         </button>
                     @else
                         <button 
@@ -469,9 +473,9 @@
                             @disabled(count($cart) === 0)
                             class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs tracking-wide shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
                         >
-                            <span>CHECKOUT ({{ $paymentMethod }})</span>
+                            <span>CHECKOUT ({{ $paymentMethod === 'KNET' ? 'CARD' : $paymentMethod }})</span>
                             <span class="font-mono bg-white/20 px-2 py-0.5 rounded text-[11px]">
-                                {{ number_format($total, 3) }} KWD
+                                {{ number_format($total, $currencyDecimals) }} {{ $currency }}
                             </span>
                         </button>
                     @endif
@@ -500,7 +504,7 @@
                     🛒 {{ count($cart) }} {{ count($cart) === 1 ? 'item' : 'items' }}
                 </span>
                 <span class="font-mono text-xs font-bold text-white">
-                    {{ number_format($total, 3) }} KWD
+                    {{ number_format($total, $currencyDecimals) }} {{ $currency }}
                 </span>
             </button>
             <button 

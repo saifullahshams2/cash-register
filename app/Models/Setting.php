@@ -32,4 +32,21 @@ class Setting extends Model
             ['value' => $value]
         );
     }
+
+    public static function getCurrency(): string
+    {
+        return strtoupper((string) static::get('currency_code', 'KWD'));
+    }
+
+    public static function getCurrencyDecimals(): int
+    {
+        return max(0, min(4, (int) static::get('currency_decimals', 3)));
+    }
+
+    public static function formatMoney(float|int|string|null $amount): string
+    {
+        $decimals = static::getCurrencyDecimals();
+
+        return number_format((float) $amount, $decimals, '.', '');
+    }
 }

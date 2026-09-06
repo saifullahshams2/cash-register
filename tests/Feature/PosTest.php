@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Livewire\Pos;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -33,7 +34,7 @@ class PosTest extends TestCase
         $response->assertSee('2. Cash');
         $response->assertSee('3. Change');
         $response->assertSee('1. CASH');
-        $response->assertSee('2. K-NET');
+        $response->assertSee('2. CARD');
         $response->assertSee('EXACT');
     }
 
@@ -95,7 +96,7 @@ class PosTest extends TestCase
             ->call('numpadInput', '0')
             ->call('numpadInput', '0')
             ->call('checkout')
-            ->assertSet('notificationMessage', 'Please select Cash or K-Net before checkout')
+            ->assertSet('notificationMessage', 'Please select Cash or Card before checkout')
             ->assertCount('cart', 1);
 
         $this->assertDatabaseCount('orders', 0);
@@ -323,5 +324,63 @@ class PosTest extends TestCase
         $this->assertEquals($product->name, $order->items->first()->product_name);
         $this->assertEquals(2.750, (float) $order->total);
         $this->assertEquals($order->id, $order->items->first()->order->id);
+    }
+
+    public function test_card_checkout_flow(): void
+    {
+        $product = Product::first();
+
+        Livewire::test(Pos::class)
+            ->call('addToCart', $product->id)
+            ->call('numpadInput', '5')
+            ->call('numpadInput', '0')
+            ->call('numpadInput', '0')
+            ->call('numpadInput', '0')
+            ->assertSet('totalInput', '5.000')
+            ->call('setPaymentMethod', 'CARD')
+            ->assertSet('tenderedInput', '5.000')
+            ->assertSee('CHECKOUT (CARD)')
+            ->call('checkout')
+            ->assertCount('cart', 0)
+            ->assertSet('paymentMethod', null);
+
+        $this->assertDatabaseHas('orders', [
+            'total' => 5.000,
+            'tendered' => 5.000,
+            'change' => 0.000,
+            'payment_method' => 'CARD',
+            'status' => 'COMPLETED',
+        ]);
+    }
+
+    public function test_pos_numpad_adapts_to_decimal_places(): void
+    {
+        // 2 decimals (e.g. USD)
+        Setting::set('currency_code', 'USD');
+        Setting::set('currency_decimals', 2);
+
+        Livewire::test(Pos::class)
+            ->assertSet('currency', 'USD')
+            ->assertSet('currencyDecimals', 2)
+            ->assertSet('totalInput', '0.00')
+            ->call('numpadInput', '1')
+            ->call('numpadInput', '5')
+            ->call('numpadInput', '0')
+            ->call('numpadInput', '0')
+            ->assertSet('totalInput', '15.00');
+
+        // 0 decimals (e.g. JPY)
+        Setting::set('currency_code', 'JPY');
+        Setting::set('currency_decimals', 0);
+
+        Livewire::test(Pos::class)
+            ->assertSet('currency', 'JPY')
+            ->assertSet('currencyDecimals', 0)
+            ->assertSet('totalInput', '0')
+            ->call('numpadInput', '1')
+            ->call('numpadInput', '5')
+            ->call('numpadInput', '0')
+            ->call('numpadInput', '0')
+            ->assertSet('totalInput', '1500');
     }
 }

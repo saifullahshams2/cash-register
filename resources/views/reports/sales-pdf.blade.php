@@ -239,7 +239,7 @@
         <tr>
             <td class="summary-card dark">
                 <div class="summary-label">Total Revenue</div>
-                <div class="summary-value">{{ number_format($revenue, 3, '.', '') }} <span style="font-size: 10px;">KWD</span></div>
+                <div class="summary-value">{{ number_format($revenue, $currencyDecimals ?? 3, '.', '') }} <span style="font-size: 10px;">{{ $currency ?? 'KWD' }}</span></div>
             </td>
             <td style="width: 10px;"></td>
             <td class="summary-card">
@@ -249,12 +249,12 @@
             <td style="width: 10px;"></td>
             <td class="summary-card emerald">
                 <div class="summary-label">CASH Revenue</div>
-                <div class="summary-value">{{ number_format($cashRevenue, 3, '.', '') }} <span style="font-size: 10px;">KWD</span></div>
+                <div class="summary-value">{{ number_format($cashRevenue, $currencyDecimals ?? 3, '.', '') }} <span style="font-size: 10px;">{{ $currency ?? 'KWD' }}</span></div>
             </td>
             <td style="width: 10px;"></td>
             <td class="summary-card sky">
-                <div class="summary-label">K-NET / Card Revenue</div>
-                <div class="summary-value">{{ number_format($knetRevenue, 3, '.', '') }} <span style="font-size: 10px;">KWD</span></div>
+                <div class="summary-label">Card Revenue</div>
+                <div class="summary-value">{{ number_format($knetRevenue, $currencyDecimals ?? 3, '.', '') }} <span style="font-size: 10px;">{{ $currency ?? 'KWD' }}</span></div>
             </td>
         </tr>
     </table>
@@ -268,7 +268,7 @@
                 <th style="width: 16%;">Cashier Name</th>
                 <th style="width: 12%;" class="text-center">Payment</th>
                 <th style="width: 20%;">Items Sold</th>
-                <th style="width: 12%;" class="text-right">Total (KWD)</th>
+                <th style="width: 12%;" class="text-right">Total ({{ $currency ?? 'KWD' }})</th>
             </tr>
         </thead>
         <tbody>
@@ -286,7 +286,7 @@
                         @if($order->payment_method === 'CASH')
                             <span class="badge badge-cash">CASH</span>
                         @else
-                            <span class="badge badge-knet">K-NET</span>
+                            <span class="badge badge-knet">{{ in_array($order->payment_method, ['CARD', 'KNET']) ? 'CARD' : $order->payment_method }}</span>
                         @endif
                     </td>
                     <td class="items-list">
@@ -298,7 +298,7 @@
                             <span style="font-style: italic; color: #94a3b8;">Direct checkout</span>
                         @endif
                     </td>
-                    <td class="amount">{{ number_format($order->total, 3, '.', '') }}</td>
+                    <td class="amount">{{ number_format($order->total, $currencyDecimals ?? 3, '.', '') }}</td>
                 </tr>
             @empty
                 <tr>

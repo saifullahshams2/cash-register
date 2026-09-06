@@ -249,4 +249,44 @@ class AdminDashboardTest extends TestCase
         $xlsxResponse = $this->actingAs($cashier)->get(route('admin.export.xlsx'));
         $xlsxResponse->assertStatus(403);
     }
+
+    public function test_admin_can_update_currency_code_and_decimal_settings(): void
+    {
+        $admin = User::where('role', User::ROLE_ADMIN)->first();
+        $this->actingAs($admin);
+
+        Livewire::test(Dashboard::class)
+            ->set('tab', 'settings')
+            ->set('currencyCode', 'USD')
+            ->set('currencyDecimals', 2)
+            ->call('saveSettings')
+            ->assertSet('successMessage', 'Website settings updated successfully!');
+
+        $this->assertEquals('USD', Setting::getCurrency());
+        $this->assertEquals(2, Setting::getCurrencyDecimals());
+    }
+
+    public function test_currency_code_validation_requires_three_letter_iso_code(): void
+    {
+        $admin = User::where('role', User::ROLE_ADMIN)->first();
+        $this->actingAs($admin);
+
+        Livewire::test(Dashboard::class)
+            ->set('tab', 'settings')
+            ->set('currencyCode', 'US')
+            ->call('saveSettings')
+            ->assertHasErrors(['currencyCode']);
+
+        Livewire::test(Dashboard::class)
+            ->set('tab', 'settings')
+            ->set('currencyCode', 'US1')
+            ->call('saveSettings')
+            ->assertHasErrors(['currencyCode']);
+
+        Livewire::test(Dashboard::class)
+            ->set('tab', 'settings')
+            ->set('currencyDecimals', 5)
+            ->call('saveSettings')
+            ->assertHasErrors(['currencyDecimals']);
+    }
 }

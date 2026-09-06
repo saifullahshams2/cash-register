@@ -144,10 +144,10 @@
                             <div class="space-y-1">
                                 <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">Today's Sales</span>
                                 <div class="text-2xl font-extrabold font-mono text-slate-900">
-                                    {{ number_format($dailySales['revenue'], 3, '.', '') }} <span class="text-xs font-sans text-slate-500">KWD</span>
+                                    {{ number_format($dailySales['revenue'], $currencyDecimals, '.', '') }} <span class="text-xs font-sans text-slate-500">{{ $currency }}</span>
                                 </div>
                                 <span class="text-[10px] text-slate-500 font-medium block">
-                                    {{ $dailySales['count'] }} orders (Avg: {{ number_format($dailySales['avg'], 3, '.', '') }})
+                                    {{ $dailySales['count'] }} orders (Avg: {{ number_format($dailySales['avg'], $currencyDecimals, '.', '') }})
                                 </span>
                             </div>
 
@@ -157,7 +157,7 @@
                             <div class="space-y-1">
                                 <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">This Week</span>
                                 <div class="text-2xl font-extrabold font-mono text-slate-900">
-                                    {{ number_format($weeklySales['revenue'], 3, '.', '') }} <span class="text-xs font-sans text-slate-500">KWD</span>
+                                    {{ number_format($weeklySales['revenue'], $currencyDecimals, '.', '') }} <span class="text-xs font-sans text-slate-500">{{ $currency }}</span>
                                 </div>
                                 <span class="text-[10px] text-slate-500 font-medium block">
                                     {{ $weeklySales['count'] }} orders this week
@@ -170,7 +170,7 @@
                             <div class="space-y-1">
                                 <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">This Month</span>
                                 <div class="text-2xl font-extrabold font-mono text-slate-900">
-                                    {{ number_format($monthlySales['revenue'], 3, '.', '') }} <span class="text-xs font-sans text-slate-500">KWD</span>
+                                    {{ number_format($monthlySales['revenue'], $currencyDecimals, '.', '') }} <span class="text-xs font-sans text-slate-500">{{ $currency }}</span>
                                 </div>
                                 <span class="text-[10px] text-slate-500 font-medium block">
                                     {{ $monthlySales['count'] }} orders in {{ now()->format('M Y') }}
@@ -271,7 +271,7 @@
                             <div class="p-3.5 rounded-xl bg-slate-900 text-white flex flex-col justify-between">
                                 <span class="text-[10px] uppercase font-bold text-slate-300 block">Total Revenue</span>
                                 <div class="text-xl font-extrabold font-mono text-white mt-1">
-                                    {{ number_format($calendarSales['revenue'], 3, '.', '') }} <span class="text-xs font-sans text-slate-400">KWD</span>
+                                    {{ number_format($calendarSales['revenue'], $currencyDecimals, '.', '') }} <span class="text-xs font-sans text-slate-400">{{ $currency }}</span>
                                 </div>
                                 <span class="text-[10px] text-slate-400 mt-1 block">
                                     {{ Carbon\Carbon::parse($calendarSales['fromDate'])->format('d M') }} — {{ Carbon\Carbon::parse($calendarSales['toDate'])->format('d M') }}
@@ -289,17 +289,17 @@
                             <div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-col justify-between">
                                 <span class="text-[10px] uppercase font-bold text-emerald-800 block">CASH</span>
                                 <div class="text-xl font-extrabold font-mono text-emerald-900 mt-1">
-                                    {{ number_format($calendarSales['cashRevenue'], 3, '.', '') }}
+                                    {{ number_format($calendarSales['cashRevenue'], $currencyDecimals, '.', '') }}
                                 </div>
-                                <span class="text-[10px] text-emerald-700 mt-1 block">Cash total KWD</span>
+                                <span class="text-[10px] text-emerald-700 mt-1 block">Cash total {{ $currency }}</span>
                             </div>
 
                             <div class="p-3.5 rounded-xl bg-sky-50 border border-sky-200 flex flex-col justify-between">
-                                <span class="text-[10px] uppercase font-bold text-sky-800 block">K-NET</span>
+                                <span class="text-[10px] uppercase font-bold text-sky-800 block">CARD</span>
                                 <div class="text-xl font-extrabold font-mono text-sky-900 mt-1">
-                                    {{ number_format($calendarSales['knetRevenue'], 3, '.', '') }}
+                                    {{ number_format($calendarSales['knetRevenue'], $currencyDecimals, '.', '') }}
                                 </div>
-                                <span class="text-[10px] text-sky-700 mt-1 block">Card total KWD</span>
+                                <span class="text-[10px] text-sky-700 mt-1 block">Card total {{ $currency }}</span>
                             </div>
                         </div>
                     </div>
@@ -331,7 +331,7 @@
                                     <th class="py-3 px-4">Date / Time</th>
                                     <th class="py-3 px-4">Payment</th>
                                     <th class="py-3 px-4">Items Summary</th>
-                                    <th class="py-3 px-4 text-right">Total (KWD)</th>
+                                    <th class="py-3 px-4 text-right">Total ({{ $currency }})</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 text-xs">
@@ -351,7 +351,7 @@
                                                 </span>
                                             @else
                                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-300">
-                                                    K-NET
+                                                    CARD
                                                 </span>
                                             @endif
                                         </td>
@@ -369,7 +369,7 @@
                                             @endif
                                         </td>
                                         <td class="py-3 px-4 text-right font-mono font-extrabold text-slate-900">
-                                            {{ number_format($order->total, 3, '.', '') }}
+                                            {{ number_format($order->total, $currencyDecimals, '.', '') }}
                                         </td>
                                     </tr>
                                 @empty
@@ -758,6 +758,69 @@
                         @error('siteTitle')
                             <p class="text-[11px] text-rose-600 font-semibold mt-1">{{ $message }}</p>
                         @enderror
+                    </div>
+
+                    <!-- Currency & Number Formatting -->
+                    <div class="pt-4 border-t border-slate-100">
+                        <div class="mb-3">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                                💱 Currency &amp; Pricing Display
+                            </label>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Customize currency 3-digit ISO code and decimal precision for POS and reports.</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Currency Code (3-digit ISO) -->
+                            <div>
+                                <label for="currencyCode" class="block text-[11px] font-bold text-slate-700 mb-1">
+                                    Currency Code (3-letter ISO)
+                                </label>
+                                <input 
+                                    wire:model.live="currencyCode" 
+                                    type="text" 
+                                    id="currencyCode" 
+                                    maxlength="3"
+                                    placeholder="e.g. USD, EUR, KWD"
+                                    required
+                                    class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-mono font-bold uppercase text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition"
+                                >
+                                <p class="text-[10px] text-slate-500 mt-1">Standard 3-letter ISO code (e.g. KWD, USD, EUR, SAR, AED, GBP).</p>
+                                @error('currencyCode')
+                                    <p class="text-[11px] text-rose-600 font-semibold mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <!-- Decimal Places (Number of Zeros) -->
+                            <div>
+                                <label for="currencyDecimals" class="block text-[11px] font-bold text-slate-700 mb-1">
+                                    Decimal Precision (Zeroes on right)
+                                </label>
+                                <select 
+                                    wire:model.live="currencyDecimals" 
+                                    id="currencyDecimals" 
+                                    required
+                                    class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition font-sans cursor-pointer"
+                                >
+                                    <option value="0">0 decimals — e.g. 15 (JPY, KRW)</option>
+                                    <option value="1">1 decimal — e.g. 15.0</option>
+                                    <option value="2">2 decimals — e.g. 15.00 (USD, EUR, SAR, AED, GBP)</option>
+                                    <option value="3">3 decimals — e.g. 15.000 (KWD, BHD, OMR)</option>
+                                    <option value="4">4 decimals — e.g. 15.0000</option>
+                                </select>
+                                <p class="text-[10px] text-slate-500 mt-1">Determines decimal display and POS numpad digit shifts.</p>
+                                @error('currencyDecimals')
+                                    <p class="text-[11px] text-rose-600 font-semibold mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <!-- Live Format Preview Badge -->
+                        <div class="mt-3 p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                            <span class="text-xs font-medium text-slate-600">Sample Price Display Preview:</span>
+                            <span class="font-mono font-bold text-sm text-slate-900 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs">
+                                {{ number_format(15.75, (int) $currencyDecimals, '.', '') }} {{ strtoupper($currencyCode ?: 'KWD') }}
+                            </span>
+                        </div>
                     </div>
 
                     <!-- Logo Upload & Preview -->

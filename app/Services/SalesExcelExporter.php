@@ -11,7 +11,7 @@ class SalesExcelExporter
     /**
      * Generate an .xlsx file binary content.
      *
-     * @param  array{companyName: string, fromDate: string, toDate: string, revenue: float, count: int, cashRevenue: float, knetRevenue: float}  $meta
+     * @param  array{companyName: string, fromDate: string, toDate: string, revenue: float, count: int, cashRevenue: float, knetRevenue: float, currency?: string, currencyDecimals?: int}  $meta
      * @return string Binary contents of the generated .xlsx archive
      */
     public function generate(Collection $orders, array $meta): string
@@ -56,10 +56,13 @@ class SalesExcelExporter
         $zip->addFromString('xl/workbook.xml', $workbook);
 
         // 5. xl/styles.xml
+        $decimals = isset($meta['currencyDecimals']) ? (int) $meta['currencyDecimals'] : 3;
+        $numFormatCode = $decimals > 0 ? '#,##0.'.str_repeat('0', $decimals) : '#,##0';
+
         $styles = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             .'<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
             .'<numFmts count="1">'
-            .'<numFmt numFmtId="164" formatCode="#,##0.000"/>'
+            .'<numFmt numFmtId="164" formatCode="'.$numFormatCode.'"/>'
             .'</numFmts>'
             .'<fonts count="4">'
             .'<font><sz val="11"/><name val="Calibri"/></font>' // 0: Normal
@@ -140,9 +143,12 @@ class SalesExcelExporter
         $r++;
 
         // Row 6: Summary Metrics
-        $revStr = number_format($meta['revenue'], 3, '.', '');
-        $cashStr = number_format($meta['cashRevenue'], 3, '.', '');
-        $knetStr = number_format($meta['knetRevenue'], 3, '.', '');
+        $currency = $meta['currency'] ?? 'KWD';
+        $decimals = isset($meta['currencyDecimals']) ? (int) $meta['currencyDecimals'] : 3;
+
+        $revStr = number_format($meta['revenue'], $decimals, '.', '');
+        $cashStr = number_format($meta['cashRevenue'], $decimals, '.', '');
+        $knetStr = number_format($meta['knetRevenue'], $decimals, '.', '');
         $count = $meta['count'];
 
         $rows[] = "<row r=\"{$r}\">"
@@ -152,7 +158,7 @@ class SalesExcelExporter
             ."<c r=\"D{$r}\"><v>{$count}</v></c>"
             ."<c r=\"E{$r}\" t=\"inlineStr\" s=\"2\"><is><t>Cash Total:</t></is></c>"
             ."<c r=\"F{$r}\" s=\"5\"><v>{$cashStr}</v></c>"
-            ."<c r=\"G{$r}\" t=\"inlineStr\" s=\"2\"><is><t>K-NET Total:</t></is></c>"
+            ."<c r=\"G{$r}\" t=\"inlineStr\" s=\"2\"><is><t>Card Total:</t></is></c>"
             ."<c r=\"H{$r}\" s=\"5\"><v>{$knetStr}</v></c>"
             .'</row>';
         $r++;
@@ -168,7 +174,7 @@ class SalesExcelExporter
             ."<c r=\"D{$r}\" t=\"inlineStr\" s=\"3\"><is><t>Cashier Name</t></is></c>"
             ."<c r=\"E{$r}\" t=\"inlineStr\" s=\"3\"><is><t>Payment Method</t></is></c>"
             ."<c r=\"F{$r}\" t=\"inlineStr\" s=\"3\"><is><t>Items Breakdown</t></is></c>"
-            ."<c r=\"G{$r}\" t=\"inlineStr\" s=\"3\"><is><t>Total (KWD)</t></is></c>"
+            ."<c r=\"G{$r}\" t=\"inlineStr\" s=\"3\"><is><t>Total ({$currency})</t></is></c>"
             .'</row>';
         $r++;
 
@@ -178,7 +184,8 @@ class SalesExcelExporter
             $date = $order->created_at->format('d M Y');
             $time = $order->created_at->format('h:i:s A');
             $cashier = $this->sanitizeCellValue((string) ($order->cashier_name ?: ($order->user?->name ?: 'Cashier')));
-            $payment = $this->sanitizeCellValue((string) $order->payment_method);
+            $paymentMethodRaw = (string) $order->payment_method;
+            $payment = in_array($paymentMethodRaw, ['CARD', 'KNET'], true) ? 'CARD' : $this->sanitizeCellValue($paymentMethodRaw);
 
             $itemsSummary = '';
             if ($order->items && count($order->items) > 0) {
@@ -191,7 +198,7 @@ class SalesExcelExporter
                 $itemsSummary = 'Direct Checkout';
             }
             $itemsSummary = $this->sanitizeCellValue($itemsSummary);
-            $totalAmount = number_format($order->total, 3, '.', '');
+            $totalAmount = number_format($order->total, $decimals, '.', '');
 
             $rows[] = "<row r=\"{$r}\">"
                 ."<c r=\"A{$r}\" t=\"inlineStr\" s=\"4\"><is><t>{$orderNum}</t></is></c>"

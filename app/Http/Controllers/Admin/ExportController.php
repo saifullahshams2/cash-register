@@ -26,11 +26,13 @@ class ExportController extends Controller
 
         $revenue = (float) $orders->sum('total');
         $cashRevenue = (float) $orders->where('payment_method', 'CASH')->sum('total');
-        $knetRevenue = (float) $orders->where('payment_method', 'KNET')->sum('total');
+        $knetRevenue = (float) $orders->whereIn('payment_method', ['CARD', 'KNET'])->sum('total');
         $count = $orders->count();
 
         $companyName = Setting::get('company_name', 'Store POS');
         $siteLogo = Setting::get('site_logo');
+        $currency = Setting::getCurrency();
+        $currencyDecimals = Setting::getCurrencyDecimals();
 
         // Convert logo to base64 for reliable DomPDF local rendering
         $logoBase64 = null;
@@ -66,6 +68,8 @@ class ExportController extends Controller
             'cashRevenue' => $cashRevenue,
             'knetRevenue' => $knetRevenue,
             'count' => $count,
+            'currency' => $currency,
+            'currencyDecimals' => $currencyDecimals,
             'generatedAt' => now()->format('d M Y, h:i A'),
             'generatedBy' => Auth::user()?->name ?? 'Admin',
         ])->setPaper('a4', 'portrait');
@@ -90,7 +94,9 @@ class ExportController extends Controller
             'revenue' => (float) $orders->sum('total'),
             'count' => $orders->count(),
             'cashRevenue' => (float) $orders->where('payment_method', 'CASH')->sum('total'),
-            'knetRevenue' => (float) $orders->where('payment_method', 'KNET')->sum('total'),
+            'knetRevenue' => (float) $orders->whereIn('payment_method', ['CARD', 'KNET'])->sum('total'),
+            'currency' => Setting::getCurrency(),
+            'currencyDecimals' => Setting::getCurrencyDecimals(),
         ];
 
         $content = $exporter->generate($orders, $meta);
