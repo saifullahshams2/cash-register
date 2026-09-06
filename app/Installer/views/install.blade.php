@@ -57,7 +57,7 @@
                 <span>🚀</span> Setup &amp; Deployment Wizard
             </h2>
             <span class="text-xs font-bold text-slate-500 bg-white border border-slate-200 px-2.5 py-1 rounded-full shadow-2xs">
-                v1.0 Production
+                v1.0.1 Production
             </span>
         </div>
 
