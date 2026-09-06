@@ -84,8 +84,11 @@ php artisan key:generate
 # 3. Build assets (or run 'npm run dev' for development)
 npm run build
 
-# 4. Run installer (or visit http://127.0.0.1:8000/install for the web wizard)
-php artisan app:install --database=sqlite --admin-username=admin --admin-password=password
+# 4. Migrate database & seed default accounts (or run headless installer)
+php artisan migrate --seed
+
+# Alternatively, run headless installer:
+# php artisan app:install --database=sqlite --admin-username=admin --admin-password=password
 
 # 5. Start development server
 php artisan serve
