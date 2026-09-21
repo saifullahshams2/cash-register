@@ -3,6 +3,7 @@
 namespace App\Livewire\Auth;
 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -11,6 +12,12 @@ use Livewire\Component;
 
 class Login extends Component
 {
+    /**
+     * Fixed bcrypt hash verified on every failed login so that response time
+     * does not reveal whether the submitted username exists.
+     */
+    private const DUMMY_HASH = '$2y$12$hKsVzy6r9J8aUhJ3oNCOKu6QU8T8QpsW/sj1pv.tGmWzFmg2tbShe';
+
     #[Rule('required|string')]
     public string $username = '';
 
@@ -40,6 +47,9 @@ class Login extends Component
 
         if (! Auth::attempt($credentials, $this->remember)) {
             if (! Auth::attempt(['email' => $this->username, 'password' => $this->password], $this->remember)) {
+                // Equalize response time for unknown usernames (timing enumeration).
+                Hash::check($this->password, self::DUMMY_HASH);
+
                 RateLimiter::hit($throttleKey, 60);
 
                 throw ValidationException::withMessages([

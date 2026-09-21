@@ -46,6 +46,11 @@ class Pos extends Component
 
     public bool $isProcessing = false;
 
+    public function boot(): void
+    {
+        abort_unless(auth()->user()?->isCashier(), 403, 'Unauthorized. Cashier access required.');
+    }
+
     public function mount()
     {
         if (Auth::check() && Auth::user()->isAdmin()) {
@@ -286,7 +291,8 @@ class Pos extends Component
 
         // Validate cart items to prevent client-side tampering (e.g. negative quantities or forged IDs)
         $productIds = array_column($this->cart, 'id');
-        $validProductIds = Product::whereIn('id', $productIds)->where('is_active', true)->pluck('id')->all();
+        $products = Product::whereIn('id', $productIds)->where('is_active', true)->get()->keyBy('id');
+        $validProductIds = $products->keys()->all();
 
         foreach ($this->cart as $item) {
             $qty = isset($item['quantity']) ? (int) $item['quantity'] : 0;
@@ -298,20 +304,54 @@ class Pos extends Component
 
                 return;
             }
+
+            $product = $products[$pid];
+            if ($product->stock < $qty) {
+                $this->isProcessing = false;
+                $this->notify("Insufficient stock for {$product->name} (available: {$product->stock}).", 'error');
+
+                return;
+            }
         }
 
-        $total = $this->getTotalProperty();
-        $tendered = (float) $this->tenderedInput;
-
-        if ($this->paymentMethod === 'CASH' && $tendered < $total) {
-            $shortage = number_format($total - $tendered, $this->currencyDecimals, '.', '');
+        if (! in_array($this->paymentMethod, ['CASH', 'CARD', 'KNET'], true)) {
             $this->isProcessing = false;
-            $this->notify("Cash is short by {$shortage} {$this->currency}", 'error');
+            $this->notify('Invalid payment method.', 'error');
 
             return;
         }
 
-        $change = max(0, round($tendered - $total, $this->currencyDecimals));
+        if (! is_numeric($this->totalInput) || ! is_finite((float) $this->totalInput) || (float) $this->totalInput < 0 || (float) $this->totalInput > 999999999.999) {
+            $this->isProcessing = false;
+            $this->notify('Invalid total amount.', 'error');
+
+            return;
+        }
+
+        $total = $this->getTotalProperty();
+
+        if (! is_numeric($this->tenderedInput) || ! is_finite((float) $this->tenderedInput) || (float) $this->tenderedInput < 0 || (float) $this->tenderedInput > 999999999.999) {
+            $this->isProcessing = false;
+            $this->notify('Invalid tendered amount.', 'error');
+
+            return;
+        }
+
+        $tendered = (float) $this->tenderedInput;
+
+        if ($this->paymentMethod === 'CASH') {
+            if ($tendered < $total) {
+                $shortage = number_format($total - $tendered, $this->currencyDecimals, '.', '');
+                $this->isProcessing = false;
+                $this->notify("Cash is short by {$shortage} {$this->currency}", 'error');
+
+                return;
+            }
+            $change = max(0, round($tendered - $total, $this->currencyDecimals));
+        } else {
+            $tendered = $total;
+            $change = 0.000;
+        }
 
         try {
             DB::beginTransaction();
@@ -334,17 +374,27 @@ class Pos extends Component
             ]);
 
             foreach ($this->cart as $item) {
+                $productId = (int) $item['id'];
+                $product = $products[$productId];
+                $quantity = (int) $item['quantity'];
+
+                $stockUpdated = Product::where('id', $productId)
+                    ->where('stock', '>=', $quantity)
+                    ->decrement('stock', $quantity);
+
+                if ($stockUpdated === 0) {
+                    throw new \RuntimeException("Insufficient stock for {$product->name}.");
+                }
+
                 OrderItem::create([
                     'order_id' => $order->id,
-                    'product_id' => (int) $item['id'],
-                    'product_name' => (string) $item['name'],
-                    'product_code' => (string) $item['code'],
+                    'product_id' => $productId,
+                    'product_name' => (string) $product->name,
+                    'product_code' => (string) $product->code,
                     'unit_price' => 0.000,
-                    'quantity' => (int) $item['quantity'],
+                    'quantity' => $quantity,
                     'subtotal' => 0.000,
                 ]);
-
-                Product::where('id', (int) $item['id'])->decrement('stock', (int) $item['quantity']);
             }
 
             DB::commit();
@@ -361,7 +411,9 @@ class Pos extends Component
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('POS Checkout failed: '.$e->getMessage());
-            $errorMsg = config('app.debug') ? $e->getMessage() : 'An error occurred while processing checkout. Please try again.';
+            $errorMsg = ($e instanceof \RuntimeException || config('app.debug'))
+                ? $e->getMessage()
+                : 'An error occurred while processing checkout. Please try again.';
             $this->notify('Checkout error: '.$errorMsg, 'error');
         } finally {
             $this->isProcessing = false;

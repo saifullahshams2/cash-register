@@ -5,12 +5,14 @@ namespace App\Installer;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\DatabaseHostValidator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\View;
+use Illuminate\Validation\ValidationException;
 use PDO;
 use Throwable;
 
@@ -60,11 +62,14 @@ class InstallerController extends Controller
         $username = (string) $request->input('username', 'root');
         $password = (string) $request->input('password', '');
 
-        // SSRF protection: reject AWS/GCP/Azure/Alibaba cloud metadata addresses
-        $resolvedIp = gethostbyname($host);
-        if (in_array(strtolower(trim($host)), ['169.254.169.254', 'metadata.google.internal', 'instance-data', '100.100.100.200'], true)
-            || $resolvedIp === '169.254.169.254'
-            || str_starts_with($resolvedIp, '169.254.')) {
+        // SSRF protection: deny-by-default. Resolve once and validate the
+        // RESOLVED address so a later DNS re-resolution (TOCTOU) cannot point
+        // the connection at a blocked target. Loopback, link-local, private
+        // (RFC1918), reserved, and metadata ranges are rejected, as is any
+        // value that does not resolve to a plain IP (which also blocks DSN
+        // parameter injection such as 'host;user=...').
+        $resolvedIp = null;
+        if (! DatabaseHostValidator::isPermitted($host, $resolvedIp)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Target database host is not permitted.',
@@ -86,7 +91,7 @@ class InstallerController extends Controller
         }
 
         try {
-            $dsn = "mysql:host={$host};port={$port};charset=utf8mb4";
+            $dsn = "mysql:host={$resolvedIp};port={$port};charset=utf8mb4";
             $pdo = new PDO($dsn, $username, $password, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_TIMEOUT => 4,
@@ -101,7 +106,7 @@ class InstallerController extends Controller
             ]);
         } catch (Throwable $e) {
             Log::error('Installer database test failed: '.$e->getMessage());
-            $errorMsg = config('app.debug') ? $e->getMessage() : 'Database connection test failed. Please verify credentials and host.';
+            $errorMsg = 'Database connection test failed. Please verify credentials and host.';
 
             return response()->json([
                 'success' => false,
@@ -114,7 +119,18 @@ class InstallerController extends Controller
     {
         $this->prepareDirectoriesAndEnvironment();
 
+        // Atomic single-flight gate: acquire an exclusive advisory lock before
+        // any install work so concurrent requests cannot both pass the
+        // installed check and run the installer (TOCTOU). Callers that lose
+        // the race are redirected away.
+        $installLock = fopen(storage_path('install.lock'), 'c');
+        if ($installLock === false || ! flock($installLock, LOCK_EX | LOCK_NB)) {
+            return redirect()->route('login');
+        }
+
         if ($this->isAlreadyInstalled()) {
+            fclose($installLock);
+
             return redirect()->route('login');
         }
 
@@ -123,27 +139,30 @@ class InstallerController extends Controller
             'company_name' => 'required|string|max:150',
             'site_title' => 'required|string|max:100',
             'app_url' => 'required|url',
-            'app_env' => 'required|in:production,local',
+            // 'app_env' is intentionally not accepted: the installed application
+            // must always run in production with debugging disabled. Accepting a
+            // client-supplied value let unauthenticated callers force APP_DEBUG=true.
+            'app_env' => 'prohibited',
             'admin_name' => 'required|string|max:100',
             'admin_username' => 'required|string|max:100',
             'admin_password' => 'required|string|min:6|confirmed',
         ];
 
         if ($request->input('db_connection') === 'mysql') {
-            $rules['mysql_host'] = 'required|string';
+            $rules['mysql_host'] = ['required', 'string', 'regex:/^[a-zA-Z0-9.-]+$/'];
             $rules['mysql_port'] = 'required|numeric|min:1|max:65535';
             $rules['mysql_database'] = ['required', 'string', 'max:64', 'regex:/^[a-zA-Z0-9_-]+$/'];
             $rules['mysql_username'] = 'required|string';
         }
 
-        $request->validate($rules);
-
         try {
+            $request->validate($rules);
+
             $dbConn = $request->input('db_connection');
             $envUpdates = [
                 'APP_NAME' => $request->input('site_title'),
-                'APP_ENV' => $request->input('app_env'),
-                'APP_DEBUG' => $request->input('app_env') === 'local' ? 'true' : 'false',
+                'APP_ENV' => 'production',
+                'APP_DEBUG' => 'false',
                 'APP_URL' => $request->input('app_url'),
                 'DB_CONNECTION' => $dbConn,
             ];
@@ -167,14 +186,24 @@ class InstallerController extends Controller
                     touch($sqlitePath);
                 }
             } else {
-                $envUpdates['DB_HOST'] = $request->input('mysql_host', '127.0.0.1');
+                $rawHost = (string) $request->input('mysql_host', '127.0.0.1');
+                $resolvedIp = null;
+                if (! DatabaseHostValidator::isPermitted($rawHost, $resolvedIp)) {
+                    if (is_resource($installLock)) {
+                        fclose($installLock);
+                    }
+
+                    return back()->withErrors(['mysql_host' => 'Target database host is not permitted.'])->withInput();
+                }
+
+                $envUpdates['DB_HOST'] = $rawHost;
                 $envUpdates['DB_PORT'] = (string) $request->input('mysql_port', '3306');
                 $envUpdates['DB_DATABASE'] = $request->input('mysql_database', 'cash_register');
                 $envUpdates['DB_USERNAME'] = $request->input('mysql_username', 'root');
                 $envUpdates['DB_PASSWORD'] = (string) $request->input('mysql_password', '');
 
                 // Ensure MySQL database exists
-                $dsn = "mysql:host={$envUpdates['DB_HOST']};port={$envUpdates['DB_PORT']};charset=utf8mb4";
+                $dsn = "mysql:host={$resolvedIp};port={$envUpdates['DB_PORT']};charset=utf8mb4";
                 $pdo = new PDO($dsn, $envUpdates['DB_USERNAME'], $envUpdates['DB_PASSWORD'], [
                     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                     PDO::ATTR_TIMEOUT => 4,
@@ -191,14 +220,16 @@ class InstallerController extends Controller
             Artisan::call('migrate', ['--force' => true]);
 
             // 4. Create the First Admin Account (NO email required, NO default cashier)
-            $adminUser = User::updateOrCreate(
-                ['username' => $request->input('admin_username')],
-                [
-                    'name' => $request->input('admin_name'),
-                    'password' => Hash::make($request->input('admin_password')),
-                    'email_verified_at' => now(),
-                ]
-            );
+            if (User::where('username', $request->input('admin_username'))->exists()) {
+                throw new \RuntimeException('An account with this username already exists.');
+            }
+
+            $adminUser = User::create([
+                'username' => $request->input('admin_username'),
+                'name' => $request->input('admin_name'),
+                'password' => Hash::make($request->input('admin_password')),
+                'email_verified_at' => now(),
+            ]);
             $adminUser->forceFill(['role' => User::ROLE_ADMIN])->save();
 
             // 5. Store Company and Site Title settings
@@ -216,6 +247,9 @@ class InstallerController extends Controller
 
             // 7. Write storage/installed lockfile
             file_put_contents(storage_path('installed'), 'INSTALLED_AT='.now()->toIso8601String()."\n");
+            if (is_resource($installLock)) {
+                fclose($installLock);
+            }
 
             return view('installer::install', [
                 'title' => 'Installation Complete',
@@ -223,9 +257,18 @@ class InstallerController extends Controller
                 'adminUsername' => $request->input('admin_username'),
                 'dbConnection' => $dbConn,
             ]);
+        } catch (ValidationException $e) {
+            if (is_resource($installLock)) {
+                fclose($installLock);
+            }
+
+            throw $e;
         } catch (Throwable $e) {
+            if (is_resource($installLock)) {
+                fclose($installLock);
+            }
             Log::error('Installation failed: '.$e->getMessage());
-            $errorMsg = config('app.debug') ? $e->getMessage() : 'An unexpected error occurred during installation. Please check server logs.';
+            $errorMsg = 'An unexpected error occurred during installation. Please check server logs.';
 
             return back()->withInput()->with('error', 'Installation failed: '.$errorMsg);
         }

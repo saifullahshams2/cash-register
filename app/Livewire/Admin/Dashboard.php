@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\DatabaseHostValidator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
@@ -83,6 +84,11 @@ class Dashboard extends Component
     public ?string $dbTestMessage = null;
 
     public ?string $dbTestStatus = null;
+
+    public function boot(): void
+    {
+        abort_unless(auth()->user()?->isAdmin(), 403, 'Unauthorized. Admin access required.');
+    }
 
     public function mount(): void
     {
@@ -334,17 +340,14 @@ class Dashboard extends Component
     public function testMysqlConnection(): void
     {
         $this->validate([
-            'mysqlHost' => 'required|string',
+            'mysqlHost' => ['required', 'string', 'regex:/^[a-zA-Z0-9.-]+$/'],
             'mysqlPort' => 'required|numeric|min:1|max:65535',
             'mysqlDatabase' => ['required', 'string', 'max:64', 'regex:/^[a-zA-Z0-9_-]+$/'],
             'mysqlUsername' => 'required|string',
         ]);
 
-        $host = strtolower(trim($this->mysqlHost));
-        $resolvedIp = gethostbyname($host);
-        if (in_array($host, ['169.254.169.254', 'metadata.google.internal', 'instance-data', '100.100.100.200'], true)
-            || $resolvedIp === '169.254.169.254'
-            || str_starts_with($resolvedIp, '169.254.')) {
+        $resolvedIp = null;
+        if (! DatabaseHostValidator::isPermitted($this->mysqlHost, $resolvedIp)) {
             $this->dbTestStatus = 'error';
             $this->dbTestMessage = 'Target database host is not permitted.';
 
@@ -352,7 +355,7 @@ class Dashboard extends Component
         }
 
         try {
-            $dsn = "mysql:host={$this->mysqlHost};port={$this->mysqlPort};charset=utf8mb4";
+            $dsn = "mysql:host={$resolvedIp};port={$this->mysqlPort};charset=utf8mb4";
             $pdo = new \PDO($dsn, $this->mysqlUsername, $this->mysqlPassword, [
                 \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                 \PDO::ATTR_TIMEOUT => 3,
@@ -376,14 +379,22 @@ class Dashboard extends Component
 
         if ($driver === 'mysql') {
             $this->validate([
-                'mysqlHost' => 'required|string',
+                'mysqlHost' => ['required', 'string', 'regex:/^[a-zA-Z0-9.-]+$/'],
                 'mysqlPort' => 'required|numeric|min:1|max:65535',
                 'mysqlDatabase' => ['required', 'string', 'max:64', 'regex:/^[a-zA-Z0-9_-]+$/'],
                 'mysqlUsername' => 'required|string',
             ]);
 
+            $resolvedIp = null;
+            if (! DatabaseHostValidator::isPermitted($this->mysqlHost, $resolvedIp)) {
+                $this->errorMessage = 'Target database host is not permitted.';
+                $this->successMessage = null;
+
+                return;
+            }
+
             try {
-                $dsn = "mysql:host={$this->mysqlHost};port={$this->mysqlPort};charset=utf8mb4";
+                $dsn = "mysql:host={$resolvedIp};port={$this->mysqlPort};charset=utf8mb4";
                 $pdo = new \PDO($dsn, $this->mysqlUsername, $this->mysqlPassword, [
                     \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                     \PDO::ATTR_TIMEOUT => 3,

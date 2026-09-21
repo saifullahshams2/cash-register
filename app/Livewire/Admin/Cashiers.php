@@ -29,6 +29,11 @@ class Cashiers extends Component
 
     public ?string $errorMessage = null;
 
+    public function boot(): void
+    {
+        abort_unless(auth()->user()?->isAdmin(), 403, 'Unauthorized. Admin access required.');
+    }
+
     public function createUser(): void
     {
         $this->validate();

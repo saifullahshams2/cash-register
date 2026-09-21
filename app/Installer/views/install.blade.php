@@ -186,10 +186,10 @@
                     </div>
                     <div>
                         <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Environment Mode</label>
-                        <select name="app_env" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-slate-900">
-                            <option value="production" selected>Production (Secure, Debug Disabled)</option>
-                            <option value="local">Local Development (Debug Enabled)</option>
-                        </select>
+                        <div class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-600 flex items-center justify-between">
+                            <span class="font-medium text-slate-800">Production</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Secure &bull; Debug Off</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -257,7 +257,11 @@
 
     async function testMysqlConnection() {
         const resultEl = document.getElementById('test_result');
-        resultEl.innerHTML = '<span class="text-slate-500">Testing connection...</span>';
+        resultEl.replaceChildren();
+        const pending = document.createElement('span');
+        pending.className = 'text-slate-500';
+        pending.textContent = 'Testing connection...';
+        resultEl.appendChild(pending);
 
         const payload = {
             _token: '{{ csrf_token() }}',
@@ -279,13 +283,24 @@
                 body: JSON.stringify(payload)
             });
             const data = await res.json();
+            resultEl.replaceChildren();
             if (data.success) {
-                resultEl.innerHTML = '<span class="text-emerald-600">✓ ' + data.message + '</span>';
+                const ok = document.createElement('span');
+                ok.className = 'text-emerald-600';
+                ok.textContent = '✓ ' + data.message;
+                resultEl.appendChild(ok);
             } else {
-                resultEl.innerHTML = '<span class="text-rose-600">✗ ' + data.message + '</span>';
+                const fail = document.createElement('span');
+                fail.className = 'text-rose-600';
+                fail.textContent = '✗ ' + data.message;
+                resultEl.appendChild(fail);
             }
         } catch (err) {
-            resultEl.innerHTML = '<span class="text-rose-600">✗ Network/request failed</span>';
+            resultEl.replaceChildren();
+            const fail = document.createElement('span');
+            fail.className = 'text-rose-600';
+            fail.textContent = '✗ Network/request failed';
+            resultEl.appendChild(fail);
         }
     }
 </script>

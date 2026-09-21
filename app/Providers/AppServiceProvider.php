@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Http\Middleware\EnsureUserIsAdmin;
+use App\Http\Middleware\EnsureUserIsCashier;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -36,5 +39,12 @@ class AppServiceProvider extends ServiceProvider
                 throw new \RuntimeException('Application encryption key [APP_KEY] is not set. Run "php artisan key:generate" before starting in production.');
             }
         }
+
+        Livewire::addPersistentMiddleware([
+            'admin',
+            'cashier',
+            EnsureUserIsAdmin::class,
+            EnsureUserIsCashier::class,
+        ]);
     }
 }

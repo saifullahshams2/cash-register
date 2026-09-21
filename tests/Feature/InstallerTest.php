@@ -26,10 +26,9 @@ class InstallerTest extends TestCase
 
     protected function tearDown(): void
     {
-        // Restore installed state and .env so subsequent tests aren't impacted
         @file_put_contents(storage_path('installed'), 'INSTALLED_FOR_TESTS');
         if ($this->originalEnv !== null) {
-            file_put_contents(base_path('.env'), $this->originalEnv);
+            @file_put_contents(base_path('.env'), $this->originalEnv);
         }
         parent::tearDown();
     }
@@ -53,7 +52,6 @@ class InstallerTest extends TestCase
             'company_name' => 'Metro Tech Store',
             'site_title' => 'TECH STORE POS',
             'app_url' => 'http://localhost:8000',
-            'app_env' => 'production',
             'admin_name' => 'Master Admin',
             'admin_username' => 'master_pos',
             'admin_password' => 'admin_pass_123',
@@ -136,7 +134,6 @@ class InstallerTest extends TestCase
             'company_name' => 'Key Test Store',
             'site_title' => 'KEY POS',
             'app_url' => 'http://localhost:8000',
-            'app_env' => 'production',
             'admin_name' => 'Key Admin',
             'admin_username' => 'keyadmin',
             'admin_password' => 'secret123',
