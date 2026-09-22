@@ -34,7 +34,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if (file_exists(storage_path('installed')) && app()->isProduction()) {
+        if (file_exists(storage_path('installed')) && app()->isProduction() && ! app()->runningInConsole()) {
             if (empty(config('app.key')) || str_contains((string) config('app.key'), 'YOUR_APP_KEY_HERE')) {
                 throw new \RuntimeException('Application encryption key [APP_KEY] is not set. Run "php artisan key:generate" before starting in production.');
             }
