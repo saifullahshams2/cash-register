@@ -410,7 +410,7 @@ class Dashboard extends Component
 
             $this->updateEnvFile([
                 'DB_CONNECTION' => 'mysql',
-                'DB_HOST' => $this->mysqlHost,
+                'DB_HOST' => $resolvedIp,
                 'DB_PORT' => $this->mysqlPort,
                 'DB_DATABASE' => $this->mysqlDatabase,
                 'DB_USERNAME' => $this->mysqlUsername,
@@ -452,13 +452,13 @@ class Dashboard extends Component
         foreach ($data as $key => $value) {
             $sanitized = str_replace(["\r", "\n"], '', (string) $value);
 
-            $escapedValue = (preg_match('/\s/', $sanitized) || str_contains($sanitized, '#') || str_contains($sanitized, '"'))
-                ? '"'.addcslashes($sanitized, '"').'"'
+            $escapedValue = (preg_match('/\s/', $sanitized) || str_contains($sanitized, '#') || str_contains($sanitized, '"') || str_contains($sanitized, "'") || str_contains($sanitized, '\\'))
+                ? '"'.str_replace(['\\', '"'], ['\\\\', '\\"'], $sanitized).'"'
                 : $sanitized;
 
             $pattern = "/^#?\s*({$key}\s*=.*)$/m";
             if (preg_match($pattern, $content)) {
-                $content = preg_replace($pattern, "{$key}={$escapedValue}", $content);
+                $content = preg_replace_callback($pattern, fn () => "{$key}={$escapedValue}", $content);
             } else {
                 $content .= "\n{$key}={$escapedValue}";
             }

@@ -151,4 +151,29 @@ class InstallerTest extends TestCase
         $loginResponse = $this->get('/login');
         $loginResponse->assertStatus(200);
     }
+
+    public function test_installer_rotates_the_publicly_shipped_placeholder_key(): void
+    {
+        $envPath = base_path('.env');
+        file_put_contents(
+            $envPath,
+            "APP_NAME=CashRegister\nAPP_ENV=production\nAPP_KEY=base64:4yFtNtyrORaor4FyLUawOiEWy7Lz8Xm7chsp+3F5z4I=\nDB_CONNECTION=sqlite\n"
+        );
+
+        $this->post('/install/process', [
+            'db_connection' => 'sqlite',
+            'company_name' => 'Key Test Store',
+            'site_title' => 'KEY POS',
+            'app_url' => 'http://localhost:8000',
+            'admin_name' => 'Key Admin',
+            'admin_username' => 'keyrotate',
+            'admin_password' => 'secret123',
+            'admin_password_confirmation' => 'secret123',
+        ])->assertStatus(200);
+
+        $updatedEnv = file_get_contents($envPath);
+
+        $this->assertStringNotContainsString('4yFtNtyrORaor4FyLUawOiEWy7Lz8Xm7chsp+3F5z4I=', $updatedEnv);
+        $this->assertMatchesRegularExpression('/^APP_KEY=base64:[A-Za-z0-9+\/]{43}=$/m', $updatedEnv);
+    }
 }

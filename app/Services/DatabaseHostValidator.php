@@ -53,6 +53,31 @@ class DatabaseHostValidator
             return false;
         }
 
+        // PHP's filters do not cover RFC 6598 shared address space (100.64.0.0/10),
+        // used for carrier-grade NAT and cloud-internal service ranges (e.g. the
+        // Alibaba 100.100.100.200 metadata endpoint singled out above), nor several
+        // other special-use IPv4 blocks. Deny them explicitly so the guard stays
+        // deny-by-default for non-public address space.
+        $packed = @inet_pton($resolved);
+        if ($packed !== false && strlen($packed) === 4) {
+            $first = ord($packed[0]);
+            $second = ord($packed[1]);
+            $third = ord($packed[2]);
+
+            $isSpecialUse = ($first === 100 && $second >= 64 && $second <= 127) // RFC 6598 shared address space
+                || ($first === 192 && $second === 0 && $third === 0)           // RFC 6890 IETF protocol assignments
+                || ($first === 192 && $second === 0 && $third === 2)           // TEST-NET-1
+                || ($first === 192 && $second === 88 && $third === 99)         // 6to4 relay anycast
+                || ($first === 198 && ($second === 18 || $second === 19))      // RFC 2544 benchmarking
+                || ($first === 198 && $second === 51 && $third === 100)        // TEST-NET-2
+                || ($first === 203 && $second === 0 && $third === 113)         // TEST-NET-3
+                || ($first >= 224 && $first <= 239);                           // multicast
+
+            if ($isSpecialUse) {
+                return false;
+            }
+        }
+
         $resolvedIp = $resolved;
 
         return true;

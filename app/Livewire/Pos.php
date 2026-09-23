@@ -9,6 +9,8 @@ use App\Models\Setting;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class Pos extends Component
@@ -21,6 +23,16 @@ class Pos extends Component
     public string $currency = 'KWD';
 
     public int $currencyDecimals = 3;
+
+    /**
+     * Keep the client-writable precision inside the range the application
+     * supports. Every consumer of this value (number_format(), pow()) treats it
+     * as unbounded, so it must be normalised before it is used.
+     */
+    public function updatedCurrencyDecimals(): void
+    {
+        $this->currencyDecimals = max(0, min(4, (int) $this->currencyDecimals));
+    }
 
     // Numpad input buffer for manual total price
     public string $totalDigits = '';
@@ -46,6 +58,15 @@ class Pos extends Component
 
     public bool $isProcessing = false;
 
+    /**
+     * Server-issued identifier for the current checkout submission. It travels
+     * inside the signed snapshot and is marked #[Locked] so the client cannot
+     * choose it: re-submitting or replaying a payload reuses the same token,
+     * which the unique index on orders.checkout_token rejects.
+     */
+    #[Locked]
+    public string $checkoutNonce = '';
+
     public function boot(): void
     {
         abort_unless(auth()->user()?->isCashier(), 403, 'Unauthorized. Cashier access required.');
@@ -64,6 +85,7 @@ class Pos extends Component
         $this->totalInput = number_format(0, $this->currencyDecimals, '.', '');
         $this->tenderedInput = number_format(0, $this->currencyDecimals, '.', '');
         $this->paymentMethod = null;
+        $this->checkoutNonce = (string) Str::uuid();
     }
 
     /**
@@ -209,8 +231,9 @@ class Pos extends Component
             $this->totalInput = number_format(0, $this->currencyDecimals, '.', '');
         } else {
             $units = (int) $this->totalDigits;
-            $divisor = 10 ** $this->currencyDecimals;
-            $this->totalInput = number_format($units / $divisor, $this->currencyDecimals, '.', '');
+            $decimals = max(0, min(4, $this->currencyDecimals));
+            $divisor = 10 ** $decimals;
+            $this->totalInput = number_format($units / $divisor, $decimals, '.', '');
         }
 
         $this->autoUpdateExactIfMatched();
@@ -269,6 +292,19 @@ class Pos extends Component
 
     public function checkout(): void
     {
+        // One submission must produce at most one sale. `isProcessing` below is
+        // ordinary public state that the client re-hydrates to false on every
+        // request, so it cannot detect a double click or a replayed payload.
+        // Consume the snapshot's submission token instead, and rotate it so the
+        // next (legitimate) sale gets a fresh one.
+        $submission = $this->checkoutNonce;
+        $this->checkoutNonce = (string) Str::uuid();
+
+        if ($submission === '') {
+            $this->notify('Invalid checkout submission. Please try again.', 'error');
+
+            return;
+        }
         if ($this->isProcessing) {
             return;
         }
@@ -356,12 +392,16 @@ class Pos extends Component
         try {
             DB::beginTransaction();
 
-            $orderNumber = 'INV-'.date('Ymd').'-'.strtoupper(substr(uniqid(), -4));
+            // uniqid()'s low 16 bits repeat every ~65ms, so the old 4-hex suffix
+            // collided between simultaneous tills and the UNIQUE index then threw
+            // the whole sale away. Use a random identifier instead.
+            $orderNumber = 'INV-'.date('Ymd').'-'.strtoupper(bin2hex(random_bytes(5)));
 
             $order = Order::create([
                 'user_id' => Auth::id(),
                 'cashier_name' => Auth::user()?->name ?? 'Cashier',
                 'order_number' => $orderNumber,
+                'checkout_token' => $submission,
                 'subtotal' => $total,
                 'discount' => 0.000,
                 'tax' => 0.000,
@@ -411,7 +451,7 @@ class Pos extends Component
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('POS Checkout failed: '.$e->getMessage());
-            $errorMsg = ($e instanceof \RuntimeException || config('app.debug'))
+            $errorMsg = ($e instanceof \RuntimeException && ! $e instanceof \PDOException || config('app.debug'))
                 ? $e->getMessage()
                 : 'An error occurred while processing checkout. Please try again.';
             $this->notify('Checkout error: '.$errorMsg, 'error');

@@ -159,7 +159,7 @@ class SwitchDatabaseCommand extends Command
             // If key exists (even if commented out), replace it
             $pattern = "/^#?\s*({$key}\s*=.*)$/m";
             if (preg_match($pattern, $content)) {
-                $content = preg_replace($pattern, "{$key}={$escapedValue}", $content);
+                $content = preg_replace_callback($pattern, fn () => "{$key}={$escapedValue}", $content);
             } else {
                 $content .= "\n{$key}={$escapedValue}";
             }
@@ -172,8 +172,8 @@ class SwitchDatabaseCommand extends Command
     {
         $sanitized = str_replace(["\r", "\n"], '', $value);
 
-        if (preg_match('/\s/', $sanitized) || str_contains($sanitized, '#') || str_contains($sanitized, '"')) {
-            return '"'.addcslashes($sanitized, '"').'"';
+        if (preg_match('/\s/', $sanitized) || str_contains($sanitized, '#') || str_contains($sanitized, '"') || str_contains($sanitized, "'") || str_contains($sanitized, '\\')) {
+            return '"'.str_replace(['\\', '"'], ['\\\\', '\\"'], $sanitized).'"';
         }
 
         return $sanitized;

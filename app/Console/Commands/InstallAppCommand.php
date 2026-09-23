@@ -56,7 +56,9 @@ class InstallAppCommand extends Command
         $envContent = file_exists($envPath) ? (string) file_get_contents($envPath) : '';
         $hasKeyOnDisk = preg_match('/^APP_KEY=(.+)$/m', $envContent, $keyMatches)
             && ! empty(trim($keyMatches[1]))
-            && ! str_contains($keyMatches[1], 'YOUR_APP_KEY_HERE');
+            && ! str_contains($keyMatches[1], 'YOUR_APP_KEY_HERE')
+            // The key formerly shipped in .env.example is public; treat it as unset so it is rotated.
+            && trim($keyMatches[1]) !== 'base64:4yFtNtyrORaor4FyLUawOiEWy7Lz8Xm7chsp+3F5z4I=';
 
         if (! $hasKeyOnDisk) {
             $this->info('Generating encryption key [APP_KEY]...');

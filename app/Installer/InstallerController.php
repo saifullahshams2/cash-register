@@ -172,7 +172,9 @@ class InstallerController extends Controller
             $envContent = file_exists($envPath) ? (string) file_get_contents($envPath) : '';
             $hasKeyOnDisk = preg_match('/^APP_KEY=(.+)$/m', $envContent, $keyMatches)
                 && ! empty(trim($keyMatches[1]))
-                && ! str_contains($keyMatches[1], 'YOUR_APP_KEY_HERE');
+                && ! str_contains($keyMatches[1], 'YOUR_APP_KEY_HERE')
+                // The key formerly shipped in .env.example is public; treat it as unset so it is rotated.
+                && trim($keyMatches[1]) !== 'base64:4yFtNtyrORaor4FyLUawOiEWy7Lz8Xm7chsp+3F5z4I=';
 
             if (! $hasKeyOnDisk) {
                 $newKey = 'base64:'.base64_encode(random_bytes(32));
@@ -196,7 +198,10 @@ class InstallerController extends Controller
                     return back()->withErrors(['mysql_host' => 'Target database host is not permitted.'])->withInput();
                 }
 
-                $envUpdates['DB_HOST'] = $rawHost;
+                // Persist the validated IP, not the raw hostname: Laravel re-resolves
+                // DB_HOST on every runtime connection, which would otherwise
+                // reintroduce the DNS-rebinding TOCTOU isPermitted() prevents.
+                $envUpdates['DB_HOST'] = $resolvedIp;
                 $envUpdates['DB_PORT'] = (string) $request->input('mysql_port', '3306');
                 $envUpdates['DB_DATABASE'] = $request->input('mysql_database', 'cash_register');
                 $envUpdates['DB_USERNAME'] = $request->input('mysql_username', 'root');
@@ -360,13 +365,13 @@ class InstallerController extends Controller
         foreach ($data as $key => $value) {
             $sanitized = str_replace(["\r", "\n"], '', (string) $value);
 
-            $escapedValue = (preg_match('/\s/', $sanitized) || str_contains($sanitized, '#') || str_contains($sanitized, '"'))
-                ? '"'.addcslashes($sanitized, '"').'"'
+            $escapedValue = (preg_match('/\s/', $sanitized) || str_contains($sanitized, '#') || str_contains($sanitized, '"') || str_contains($sanitized, "'") || str_contains($sanitized, '\\'))
+                ? '"'.str_replace(['\\', '"'], ['\\\\', '\\"'], $sanitized).'"'
                 : $sanitized;
 
             $pattern = "/^#?\s*({$key}\s*=.*)$/m";
             if (preg_match($pattern, $content)) {
-                $content = preg_replace($pattern, "{$key}={$escapedValue}", $content);
+                $content = preg_replace_callback($pattern, fn () => "{$key}={$escapedValue}", $content);
             } else {
                 $content .= "\n{$key}={$escapedValue}";
             }

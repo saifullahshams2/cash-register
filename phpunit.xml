@@ -19,7 +19,11 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+<<<<<<< HEAD
         <env name="APP_KEY" value="base64:ykmnxjANdoEMVAljMBuqpLFcc7WDHuCLiqqqLwg96bg="/>
+=======
+        <env name="APP_KEY" value="base64:4yFtNtyrORaor4FyLUawOiEWy7Lz8Xm7chsp+3F5z4I="/>
+>>>>>>> b3183e0 (Fix multiple security vulnerabilities in POS and installer)
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
