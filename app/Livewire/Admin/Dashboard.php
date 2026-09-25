@@ -54,10 +54,6 @@ class Dashboard extends Component
 
     public string $siteTitle = '';
 
-    public string $currencyCode = 'KWD';
-
-    public int $currencyDecimals = 3;
-
     public $siteLogo = null;
 
     public ?string $currentLogo = null;
@@ -106,8 +102,6 @@ class Dashboard extends Component
 
         $this->companyName = Setting::get('company_name', 'Store POS');
         $this->siteTitle = Setting::get('site_title', 'CASH REGISTER');
-        $this->currencyCode = Setting::getCurrency();
-        $this->currencyDecimals = Setting::getCurrencyDecimals();
         $this->currentLogo = Setting::get('site_logo');
         $this->currentFavicon = Setting::get('site_favicon');
 
@@ -272,18 +266,12 @@ class Dashboard extends Component
         $this->validate([
             'companyName' => 'required|string|max:150',
             'siteTitle' => 'required|string|max:100',
-            'currencyCode' => ['required', 'string', 'size:3', 'regex:/^[A-Za-z]{3}$/'],
-            'currencyDecimals' => 'required|integer|min:0|max:4',
             'siteLogo' => 'nullable|mimes:png,jpg,jpeg,webp|max:2048',
             'siteFavicon' => 'nullable|mimes:png,ico,webp|max:1024',
         ], [
-            'currencyCode.regex' => 'The currency must be a 3-letter ISO code (e.g. USD, EUR, KWD).',
-            'currencyCode.size' => 'The currency must be exactly 3 letters (e.g. USD, EUR, KWD).',
         ], [
             'companyName' => 'company name',
             'siteTitle' => 'website title',
-            'currencyCode' => 'currency code',
-            'currencyDecimals' => 'decimal places',
             'siteLogo' => 'logo image',
             'siteFavicon' => 'favicon image',
         ]);
@@ -291,10 +279,6 @@ class Dashboard extends Component
         try {
             Setting::set('company_name', trim($this->companyName));
             Setting::set('site_title', trim($this->siteTitle));
-            Setting::set('currency_code', strtoupper(trim($this->currencyCode)));
-            Setting::set('currency_decimals', (int) $this->currencyDecimals);
-            $this->currencyCode = strtoupper(trim($this->currencyCode));
-
             if ($this->siteLogo) {
                 $path = $this->siteLogo->store('branding', 'public');
                 $url = asset('storage/'.$path);

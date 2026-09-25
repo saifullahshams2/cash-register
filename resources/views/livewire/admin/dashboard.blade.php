@@ -760,69 +760,6 @@
                         @enderror
                     </div>
 
-                    <!-- Currency & Number Formatting -->
-                    <div class="pt-4 border-t border-slate-100">
-                        <div class="mb-3">
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                                💱 Currency &amp; Pricing Display
-                            </label>
-                            <p class="text-[11px] text-slate-500 mt-0.5">Customize currency 3-digit ISO code and decimal precision for POS and reports.</p>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <!-- Currency Code (3-digit ISO) -->
-                            <div>
-                                <label for="currencyCode" class="block text-[11px] font-bold text-slate-700 mb-1">
-                                    Currency Code (3-letter ISO)
-                                </label>
-                                <input 
-                                    wire:model.live="currencyCode" 
-                                    type="text" 
-                                    id="currencyCode" 
-                                    maxlength="3"
-                                    placeholder="e.g. USD, EUR, KWD"
-                                    required
-                                    class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-mono font-bold uppercase text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition"
-                                >
-                                <p class="text-[10px] text-slate-500 mt-1">Standard 3-letter ISO code (e.g. KWD, USD, EUR, SAR, AED, GBP).</p>
-                                @error('currencyCode')
-                                    <p class="text-[11px] text-rose-600 font-semibold mt-1">{{ $message }}</p>
-                                @enderror
-                            </div>
-
-                            <!-- Decimal Places (Number of Zeros) -->
-                            <div>
-                                <label for="currencyDecimals" class="block text-[11px] font-bold text-slate-700 mb-1">
-                                    Decimal Precision (Zeroes on right)
-                                </label>
-                                <select 
-                                    wire:model.live="currencyDecimals" 
-                                    id="currencyDecimals" 
-                                    required
-                                    class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition font-sans cursor-pointer"
-                                >
-                                    <option value="0">0 decimals — e.g. 15 (JPY, KRW)</option>
-                                    <option value="1">1 decimal — e.g. 15.0</option>
-                                    <option value="2">2 decimals — e.g. 15.00 (USD, EUR, SAR, AED, GBP)</option>
-                                    <option value="3">3 decimals — e.g. 15.000 (KWD, BHD, OMR)</option>
-                                    <option value="4">4 decimals — e.g. 15.0000</option>
-                                </select>
-                                <p class="text-[10px] text-slate-500 mt-1">Determines decimal display and POS numpad digit shifts.</p>
-                                @error('currencyDecimals')
-                                    <p class="text-[11px] text-rose-600 font-semibold mt-1">{{ $message }}</p>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <!-- Live Format Preview Badge -->
-                        <div class="mt-3 p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                            <span class="text-xs font-medium text-slate-600">Sample Price Display Preview:</span>
-                            <span class="font-mono font-bold text-sm text-slate-900 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs">
-                                {{ number_format(15.75, (int) $currencyDecimals, '.', '') }} {{ strtoupper($currencyCode ?: 'KWD') }}
-                            </span>
-                        </div>
-                    </div>
-
                     <!-- Logo Upload & Preview -->
                     <div class="pt-4 border-t border-slate-100">
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
@@ -1055,3 +992,4 @@
 
     </main>
 </div>
+

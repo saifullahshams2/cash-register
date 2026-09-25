@@ -35,12 +35,12 @@ class Setting extends Model
 
     public static function getCurrency(): string
     {
-        return strtoupper((string) static::get('currency_code', 'KWD'));
+        return 'KWD';
     }
 
     public static function getCurrencyDecimals(): int
     {
-        return max(0, min(4, (int) static::get('currency_decimals', 3)));
+        return 3;
     }
 
     public static function formatMoney(float|int|string|null $amount): string
