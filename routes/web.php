@@ -15,6 +15,32 @@ if (file_exists(app_path('Installer/InstallerController.php'))) {
     Route::post('/install/process', [InstallerController::class, 'process'])->middleware('throttle:5,1')->name('installer.process');
 }
 
+// Dynamic Web Manifest
+Route::get('/manifest.json', function () {
+    $siteTitle = \App\Models\Setting::get('site_title', config('app.name', 'Cash Register POS'));
+    $siteLogo = \App\Models\Setting::get('site_logo');
+
+    // Use default favicon if no logo is set, or a transparent 1x1 if nothing is available
+    $iconUrl = $siteLogo ?: asset('favicon.ico');
+
+    return response()->json([
+        'name' => $siteTitle,
+        'short_name' => $siteTitle,
+        'start_url' => '/',
+        'display' => 'standalone',
+        'theme_color' => '#ffffff',
+        'background_color' => '#ffffff',
+        'icons' => [
+            [
+                'src' => $iconUrl,
+                'sizes' => '192x192 512x512',
+                'type' => 'image/png',
+                'purpose' => 'any maskable'
+            ]
+        ]
+    ]);
+})->name('manifest');
+
 // Guest Authentication Routes
 Route::middleware('guest')->group(function () {
     Route::get('/login', Login::class)->name('login');

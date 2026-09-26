@@ -174,6 +174,53 @@
                         {{ Auth::user()->name }}
                     </span>
 
+                    <div x-data="{ 
+                            deferredPrompt: null, 
+                            showInstall: false,
+                            checkStandalone() {
+                                return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+                            },
+                            init() {
+                                if (this.checkStandalone()) return;
+                                
+                                window.addEventListener('beforeinstallprompt', (e) => {
+                                    e.preventDefault();
+                                    this.deferredPrompt = e;
+                                    this.showInstall = true;
+                                });
+                                
+                                window.addEventListener('appinstalled', () => {
+                                    this.showInstall = false;
+                                    this.deferredPrompt = null;
+                                });
+                            },
+                            async install() {
+                                if (!this.deferredPrompt) return;
+                                this.deferredPrompt.prompt();
+                                const { outcome } = await this.deferredPrompt.userChoice;
+                                if (outcome === 'accepted') {
+                                    this.showInstall = false;
+                                }
+                                this.deferredPrompt = null;
+                            }
+                        }" 
+                        x-show="showInstall" 
+                        style="display: none;"
+                        class="shrink-0"
+                    >
+                        <button 
+                            @click="install()" 
+                            type="button" 
+                            class="px-2 sm:px-2.5 py-1 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-lg transition cursor-pointer flex items-center gap-1"
+                            title="Install App"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                              <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                            Install
+                        </button>
+                    </div>
+
                     <form method="POST" action="{{ route('logout') }}" class="inline">
                         @csrf
                         <button 

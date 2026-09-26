@@ -11,6 +11,15 @@
     @if($siteFavicon)
         <link rel="icon" href="{{ $siteFavicon }}">
     @endif
+    <link rel="manifest" href="{{ route('manifest') }}">
+    <meta name="theme-color" content="#ffffff">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/build/sw.js');
+            });
+        }
+    </script>
 
     @if(file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
         @vite(['resources/css/app.css', 'resources/js/app.js'])
