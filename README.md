@@ -89,7 +89,7 @@ cp .env.example .env
 php artisan key:generate
 
 # 3. Compile assets (or run 'npm run dev' for live hot-reload)
-npm run dev
+npm run build
 
 # 4. Migrate database & seed default local accounts
 php artisan migrate --seed
