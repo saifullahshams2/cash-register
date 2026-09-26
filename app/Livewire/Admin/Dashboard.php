@@ -7,7 +7,7 @@ use App\Models\Product;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\DatabaseHostValidator;
-use Illuminate\Database\Eloquent\Collection;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -117,7 +117,7 @@ class Dashboard extends Component
         $this->mysqlPort = (string) config('database.connections.mysql.port', '3306');
         $this->mysqlDatabase = config('database.connections.mysql.database', 'cash_register');
         $this->mysqlUsername = config('database.connections.mysql.username', 'root');
-        $this->mysqlPassword = (string) config('database.connections.mysql.password', '');
+        $this->mysqlPassword = '';
     }
 
     public function setTab(string $tab): void
@@ -385,8 +385,9 @@ class Dashboard extends Component
         }
 
         try {
+            $password = $this->mysqlPassword !== '' ? $this->mysqlPassword : (string) config('database.connections.mysql.password', '');
             $dsn = "mysql:host={$resolvedIp};port={$this->mysqlPort};charset=utf8mb4";
-            $pdo = new \PDO($dsn, $this->mysqlUsername, $this->mysqlPassword, [
+            $pdo = new \PDO($dsn, $this->mysqlUsername, $password, [
                 \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                 \PDO::ATTR_TIMEOUT => 3,
             ]);
@@ -423,9 +424,11 @@ class Dashboard extends Component
                 return;
             }
 
+            $password = $this->mysqlPassword !== '' ? $this->mysqlPassword : (string) config('database.connections.mysql.password', '');
+
             try {
                 $dsn = "mysql:host={$resolvedIp};port={$this->mysqlPort};charset=utf8mb4";
-                $pdo = new \PDO($dsn, $this->mysqlUsername, $this->mysqlPassword, [
+                $pdo = new \PDO($dsn, $this->mysqlUsername, $password, [
                     \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                     \PDO::ATTR_TIMEOUT => 3,
                 ]);
@@ -444,7 +447,7 @@ class Dashboard extends Component
                 'DB_PORT' => $this->mysqlPort,
                 'DB_DATABASE' => $this->mysqlDatabase,
                 'DB_USERNAME' => $this->mysqlUsername,
-                'DB_PASSWORD' => $this->mysqlPassword,
+                'DB_PASSWORD' => $password,
             ]);
 
             $this->currentDbDriver = 'mysql';
@@ -580,8 +583,8 @@ class Dashboard extends Component
             $to = $temp;
         }
 
-        $fromDateTime = \Carbon\Carbon::parse($from)->startOfDay();
-        $toDateTime = \Carbon\Carbon::parse($to)->endOfDay();
+        $fromDateTime = Carbon::parse($from)->startOfDay();
+        $toDateTime = Carbon::parse($to)->endOfDay();
 
         $stats = Order::where('created_at', '>=', $fromDateTime)
             ->where('created_at', '<=', $toDateTime)

@@ -18,8 +18,11 @@ class ExportController extends Controller
     {
         ['from' => $from, 'to' => $to, 'filename' => $fileName] = $this->resolveDateRange($request, 'pdf');
 
-        $orders = Order::whereDate('created_at', '>=', $from)
-            ->whereDate('created_at', '<=', $to)
+        $fromDateTime = Carbon::parse($from)->startOfDay();
+        $toDateTime = Carbon::parse($to)->endOfDay();
+
+        $orders = Order::where('created_at', '>=', $fromDateTime)
+            ->where('created_at', '<=', $toDateTime)
             ->with(['items', 'user'])
             ->orderByDesc('created_at')
             ->get();
@@ -86,8 +89,11 @@ class ExportController extends Controller
     {
         ['from' => $from, 'to' => $to, 'filename' => $fileName] = $this->resolveDateRange($request, 'xlsx');
 
-        $orders = Order::whereDate('created_at', '>=', $from)
-            ->whereDate('created_at', '<=', $to)
+        $fromDateTime = Carbon::parse($from)->startOfDay();
+        $toDateTime = Carbon::parse($to)->endOfDay();
+
+        $orders = Order::where('created_at', '>=', $fromDateTime)
+            ->where('created_at', '<=', $toDateTime)
             ->with(['items', 'user'])
             ->orderByDesc('created_at')
             ->get();

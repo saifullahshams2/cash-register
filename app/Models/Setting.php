@@ -34,7 +34,7 @@ class Setting extends Model
             ['key' => $key],
             ['value' => $value]
         );
-        
+
         Cache::forget('app_settings');
     }
 

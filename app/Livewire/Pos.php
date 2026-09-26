@@ -148,7 +148,6 @@ class Pos extends Component
 
     // --- Alpine.js handles numpad and tender logic client-side ---
 
-
     // --- Hold / Resume Cart ---
 
     public function holdCart(): void
@@ -266,6 +265,13 @@ class Pos extends Component
         }
 
         $total = $this->getTotalProperty();
+
+        if ($total <= 0) {
+            $this->isProcessing = false;
+            $this->notify('Total amount must be greater than zero.', 'error');
+
+            return;
+        }
 
         if (! is_numeric($this->tenderedInput) || ! is_finite((float) $this->tenderedInput) || (float) $this->tenderedInput < 0 || (float) $this->tenderedInput > 999999999.999) {
             $this->isProcessing = false;

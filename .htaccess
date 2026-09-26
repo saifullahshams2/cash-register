@@ -2,7 +2,7 @@
     RewriteEngine On
 
     # Block direct access to sensitive files and directories
-    RewriteRule ^(\.env|\.git|composer\.(json|lock)|artisan|database/|storage/logs/|.*\.zip$) - [F,L,NC]
+    RewriteRule ^(\.env|\.git|composer\.(json|lock)|package(-lock)?\.json|artisan|phpunit\.xml|CLAUDE\.md|AGENTS\.md|README\.md|app/|bootstrap/|config/|database/|resources/|routes/|storage/|tests/|.*\.zip$) - [F,L,NC]
 
     # Forward non-public asset requests to public/
     RewriteCond %{REQUEST_URI} !^/public/

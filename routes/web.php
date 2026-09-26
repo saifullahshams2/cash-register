@@ -5,6 +5,7 @@ use App\Installer\InstallerController;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Auth\Login;
 use App\Livewire\Pos;
+use App\Models\Setting;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -17,8 +18,8 @@ if (file_exists(app_path('Installer/InstallerController.php'))) {
 
 // Dynamic Web Manifest
 Route::get('/manifest.json', function () {
-    $siteTitle = \App\Models\Setting::get('site_title', config('app.name', 'Cash Register POS'));
-    $siteLogo = \App\Models\Setting::get('site_logo');
+    $siteTitle = Setting::get('site_title', config('app.name', 'Cash Register POS'));
+    $siteLogo = Setting::get('site_logo');
 
     // Use default favicon if no logo is set, or a transparent 1x1 if nothing is available
     $iconUrl = $siteLogo ?: asset('favicon.ico');
@@ -35,9 +36,9 @@ Route::get('/manifest.json', function () {
                 'src' => $iconUrl,
                 'sizes' => '192x192 512x512',
                 'type' => 'image/png',
-                'purpose' => 'any maskable'
-            ]
-        ]
+                'purpose' => 'any maskable',
+            ],
+        ],
     ]);
 })->name('manifest');
 

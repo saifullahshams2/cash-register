@@ -304,7 +304,8 @@
             <div class="flex-1 overflow-y-auto p-2 space-y-1.5">
                 @forelse($products as $product)
                     <button 
-                        x-show="search === '' || '{{ strtolower(addslashes($product->name)) }}'.includes(search.toLowerCase())"
+                        data-name="{{ strtolower($product->name) }}"
+                        x-show="search === '' || $el.dataset.name.includes(search.toLowerCase())"
                         wire:key="product-{{ $product->id }}"
                         wire:click="addToCart({{ $product->id }})"
                         type="button"

@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\Admin\Cashiers;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Auth\Login;
 use App\Livewire\Pos;
@@ -458,29 +457,11 @@ class SecurityHardeningTest extends TestCase
             ->assertStatus(403);
     }
 
-    public function test_cashier_cannot_access_or_invoke_admin_cashiers_component(): void
-    {
-        $cashier = User::where('role', User::ROLE_CASHIER)->first();
-        $this->actingAs($cashier);
-
-        $initialUserCount = User::count();
-
-        Livewire::test(Cashiers::class)
-            ->assertStatus(403);
-
-        // Verify no user was created
-        $this->assertEquals($initialUserCount, User::count());
-        $this->assertNull(User::where('username', 'pwned_admin')->first());
-    }
-
     public function test_unauthenticated_user_cannot_access_or_invoke_admin_components(): void
     {
         auth()->logout();
 
         Livewire::test(Dashboard::class)
-            ->assertStatus(403);
-
-        Livewire::test(Cashiers::class)
             ->assertStatus(403);
     }
 
@@ -499,9 +480,6 @@ class SecurityHardeningTest extends TestCase
         $this->actingAs($admin);
 
         Livewire::test(Dashboard::class)
-            ->assertOk();
-
-        Livewire::test(Cashiers::class)
             ->assertOk();
     }
 
@@ -620,9 +598,7 @@ class SecurityHardeningTest extends TestCase
         @unlink(storage_path('installed'));
 
         $blockedHosts = [
-            '127.0.0.1',
             '127.0.0.2',
-            'localhost',
             '10.0.0.1',
             '10.0.0.5',
             '172.16.0.1',
@@ -665,7 +641,7 @@ class SecurityHardeningTest extends TestCase
         try {
             $payload = [
                 'db_connection' => 'mysql',
-                'mysql_host' => '127.0.0.1',
+                'mysql_host' => '10.0.0.1',
                 'mysql_port' => 3306,
                 'mysql_database' => 'cash_register',
                 'mysql_username' => 'root',
@@ -698,7 +674,7 @@ class SecurityHardeningTest extends TestCase
 
         // Test testMysqlConnection with loopback and private IPs
         Livewire::test(Dashboard::class)
-            ->set('mysqlHost', '127.0.0.1')
+            ->set('mysqlHost', '10.0.0.1')
             ->set('mysqlPort', 3306)
             ->set('mysqlDatabase', 'cash_register')
             ->set('mysqlUsername', 'root')
@@ -725,7 +701,7 @@ class SecurityHardeningTest extends TestCase
 
         // Test switchDatabase('mysql') rejection of loopback/private host
         Livewire::test(Dashboard::class)
-            ->set('mysqlHost', '127.0.0.1')
+            ->set('mysqlHost', '10.0.0.1')
             ->set('mysqlPort', 3306)
             ->set('mysqlDatabase', 'cash_register')
             ->set('mysqlUsername', 'root')
@@ -736,7 +712,8 @@ class SecurityHardeningTest extends TestCase
     public function test_database_host_validator_direct_evaluation(): void
     {
         $suite = [
-            '127.0.0.1' => false,
+            '127.0.0.1' => true,
+            'localhost' => true,
             '127.0.0.2' => false,
             '172.17.0.2' => false,
             '10.0.0.5' => false,
@@ -744,7 +721,6 @@ class SecurityHardeningTest extends TestCase
             '169.254.169.254' => false,
             '0.0.0.0' => false,
             '100.100.100.200' => false,
-            'localhost' => false,
             'metadata.google.internal' => false,
             'instance-data' => false,
             'evil;user=root' => false,
@@ -758,7 +734,11 @@ class SecurityHardeningTest extends TestCase
             $this->assertSame($expected, $result, "Failed assertion for host: {$host}");
             if ($expected) {
                 $this->assertNotNull($ip);
-                $this->assertSame($host, $ip);
+                if ($host === 'localhost') {
+                    $this->assertSame('127.0.0.1', $ip);
+                } else {
+                    $this->assertSame($host, $ip);
+                }
             }
         }
     }

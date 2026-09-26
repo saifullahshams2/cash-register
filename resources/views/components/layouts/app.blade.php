@@ -16,7 +16,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/build/sw.js');
+                navigator.serviceWorker.register('/sw.js');
             });
         }
     </script>
@@ -33,7 +33,7 @@
             font-family: Arial, sans-serif;
         }
         .font-mono {
-            font-family: Arial, sans-serif;
+            font-variant-numeric: tabular-nums;
         }
         /* Custom scrollbars for light theme */
         ::-webkit-scrollbar {

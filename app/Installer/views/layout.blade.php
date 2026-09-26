@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'System Setup & Installation' }} - Cash Register POS</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    @if(file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
+        @vite(['resources/css/app.css'])
+    @elseif(file_exists(public_path('css/app.css')))
+        <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    @else
+        <script src="https://cdn.tailwindcss.com"></script>
+    @endif
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;

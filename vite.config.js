@@ -14,8 +14,9 @@ export default defineConfig({
             registerType: 'autoUpdate',
             injectRegister: false, // We'll manually register in the layout
             manifest: false, // Using dynamic Laravel route for manifest.json
-            buildBase: '/build/',
-            outDir: 'public/build',
+            buildBase: '/',
+            outDir: 'public',
+            scope: '/',
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
                 navigateFallback: null,

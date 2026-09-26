@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Livewire\Pos;
 use App\Models\Order;
 use App\Models\Product;
-use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -37,8 +36,6 @@ class PosTest extends TestCase
         $response->assertSee('2. CARD');
         $response->assertSee('EXACT');
     }
-
-
 
     public function test_can_add_product_to_cart_with_quantity_only(): void
     {
@@ -117,8 +114,6 @@ class PosTest extends TestCase
         $this->assertEquals(0.000, (float) Product::first()->price);
     }
 
-
-
     public function test_cash_shortage_prevents_checkout(): void
     {
         $product = Product::first();
@@ -131,6 +126,23 @@ class PosTest extends TestCase
             ->set('tenderedInput', '3.000')
             ->call('checkout')
             ->assertSet('notificationMessage', 'Cash is short by 2.000 KWD')
+            ->assertSet('notificationType', 'error')
+            ->assertCount('cart', 1);
+
+        $this->assertDatabaseCount('orders', 0);
+    }
+
+    public function test_zero_total_checkout_is_prevented(): void
+    {
+        $product = Product::first();
+
+        Livewire::test(Pos::class)
+            ->call('addToCart', $product->id)
+            ->set('totalInput', '0.000')
+            ->set('paymentMethod', 'CASH')
+            ->set('tenderedInput', '0.000')
+            ->call('checkout')
+            ->assertSet('notificationMessage', 'Total amount must be greater than zero.')
             ->assertSet('notificationType', 'error')
             ->assertCount('cart', 1);
 

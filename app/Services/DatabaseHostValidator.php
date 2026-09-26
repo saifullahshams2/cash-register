@@ -37,6 +37,13 @@ class DatabaseHostValidator
         // Single resolution to prevent DNS rebinding TOCTOU vulnerabilities
         $resolved = gethostbyname($host);
 
+        // Permit local database host (standalone / retail terminal / XAMPP / Laragon)
+        if ($host === 'localhost' || $host === '127.0.0.1' || $resolved === '127.0.0.1') {
+            $resolvedIp = '127.0.0.1';
+
+            return true;
+        }
+
         if ($resolved === $host && ! filter_var($host, FILTER_VALIDATE_IP)) {
             // Unresolvable hostname
             return false;

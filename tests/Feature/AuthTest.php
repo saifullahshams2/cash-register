@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\Admin\Cashiers;
+use App\Livewire\Admin\Dashboard;
 use App\Livewire\Auth\Login;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -117,16 +117,16 @@ class AuthTest extends TestCase
 
         $this->actingAs($admin);
 
-        Livewire::test(Cashiers::class)
-            ->set('name', 'Fatima Ali')
-            ->set('username', 'fatima_pos')
-            ->set('role', User::ROLE_CASHIER)
-            ->set('password', 'secret123')
-            ->set('password_confirmation', 'secret123')
-            ->call('createUser')
+        Livewire::test(Dashboard::class)
+            ->set('newUserName', 'Fatima Ali')
+            ->set('newUserUsername', 'fatima_pos')
+            ->set('newUserRole', User::ROLE_CASHIER)
+            ->set('newUserPassword', 'secret123')
+            ->set('newUserPasswordConfirmation', 'secret123')
+            ->call('addUser')
             ->assertSet('successMessage', 'Cashier account created successfully!')
-            ->assertSet('name', '')
-            ->assertSet('username', '');
+            ->assertSet('newUserName', '')
+            ->assertSet('newUserUsername', '');
 
         $this->assertDatabaseHas('users', [
             'name' => 'Fatima Ali',
@@ -144,16 +144,16 @@ class AuthTest extends TestCase
 
         $this->actingAs($admin);
 
-        Livewire::test(Cashiers::class)
-            ->set('name', 'Super Admin 2')
-            ->set('username', 'admin2')
-            ->set('role', User::ROLE_ADMIN)
-            ->set('password', 'adminpassword')
-            ->set('password_confirmation', 'adminpassword')
-            ->call('createUser')
+        Livewire::test(Dashboard::class)
+            ->set('newUserName', 'Super Admin 2')
+            ->set('newUserUsername', 'admin2')
+            ->set('newUserRole', User::ROLE_ADMIN)
+            ->set('newUserPassword', 'adminpassword')
+            ->set('newUserPasswordConfirmation', 'adminpassword')
+            ->call('addUser')
             ->assertSet('successMessage', 'Admin account created successfully!')
-            ->assertSet('name', '')
-            ->assertSet('username', '');
+            ->assertSet('newUserName', '')
+            ->assertSet('newUserUsername', '');
 
         $this->assertDatabaseHas('users', [
             'name' => 'Super Admin 2',
@@ -174,13 +174,13 @@ class AuthTest extends TestCase
 
         $specialUsername = 'User #123 @pos-terminal!_⚡';
 
-        Livewire::test(Cashiers::class)
-            ->set('name', 'Special Cashier')
-            ->set('username', $specialUsername)
-            ->set('role', User::ROLE_CASHIER)
-            ->set('password', 'secret123')
-            ->set('password_confirmation', 'secret123')
-            ->call('createUser')
+        Livewire::test(Dashboard::class)
+            ->set('newUserName', 'Special Cashier')
+            ->set('newUserUsername', $specialUsername)
+            ->set('newUserRole', User::ROLE_CASHIER)
+            ->set('newUserPassword', 'secret123')
+            ->set('newUserPasswordConfirmation', 'secret123')
+            ->call('addUser')
             ->assertSet('successMessage', 'Cashier account created successfully!');
 
         $this->assertDatabaseHas('users', [
@@ -197,7 +197,7 @@ class AuthTest extends TestCase
         $admin = User::where('role', User::ROLE_ADMIN)->first();
         $this->actingAs($admin);
 
-        Livewire::test(Cashiers::class)
+        Livewire::test(Dashboard::class)
             ->call('deleteUser', $admin->id)
             ->assertSet('errorMessage', 'You cannot delete your own logged-in admin account.');
 
@@ -210,7 +210,7 @@ class AuthTest extends TestCase
         $cashier = User::where('role', User::ROLE_CASHIER)->first();
         $this->actingAs($admin);
 
-        Livewire::test(Cashiers::class)
+        Livewire::test(Dashboard::class)
             ->call('deleteUser', $cashier->id)
             ->assertSet('errorMessage', null);
 
