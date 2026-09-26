@@ -214,9 +214,7 @@
         >
             <span>🔢</span>
             <span>Register</span>
-            @if($total > 0)
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            @endif
+            <span x-show="totalFloat > 0" class="w-1.5 h-1.5 rounded-full bg-emerald-500" style="display: none;"></span>
         </button>
         <button 
             type="button" 
@@ -299,7 +297,7 @@
                     </span>
                 </div>
                 <div class="flex items-center gap-1.5">
-                    <span class="font-mono text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">{{ $totalInput }}</span>
+                    <span class="font-mono text-3xl sm:text-4xl font-black text-slate-900 tracking-tight" x-text="totalInput"></span>
                     <span class="text-xs sm:text-sm font-bold text-slate-600">{{ $currency }}</span>
                 </div>
             </div>
@@ -395,27 +393,26 @@
 
             <!-- D. DIRECT CHECKOUT BUTTON (BLOCKED WITHOUT PAYMENT METHOD SELECTION) -->
             <div class="shrink-0 pt-1">
-                <template x-if="!paymentMethod">
-                    <button 
-                        type="button" 
-                        disabled
-                        class="w-full py-3.5 rounded-xl bg-slate-200 text-slate-400 font-bold text-xs sm:text-sm tracking-wider uppercase border border-slate-300 cursor-not-allowed flex items-center justify-center gap-2 shadow-2xs"
-                    >
-                        <span>🔒 Select Cash or Card to Checkout</span>
-                    </button>
-                </template>
-                <template x-if="paymentMethod">
-                    <button 
-                        wire:click="checkout"
-                        type="button"
-                        @disabled(count($cart) === 0)
-                        class="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-extrabold text-sm sm:text-base tracking-wide shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                        <span x-text="`CHECKOUT (${paymentMethod === 'KNET' ? 'CARD' : paymentMethod})`"></span>
-                        <span class="font-mono bg-white/20 px-2.5 py-0.5 rounded-md text-xs sm:text-sm" x-text="`${totalInput} {{ $currency }}`"></span>
-                        <span class="text-[10px] sm:text-xs opacity-80">(Enter)</span>
-                    </button>
-                </template>
+                <button 
+                    x-show="!paymentMethod"
+                    type="button" 
+                    disabled
+                    class="w-full py-3.5 rounded-xl bg-slate-200 text-slate-400 font-bold text-xs sm:text-sm tracking-wider uppercase border border-slate-300 cursor-not-allowed flex items-center justify-center gap-2 shadow-2xs"
+                >
+                    <span>🔒 Select Cash or Card to Checkout</span>
+                </button>
+
+                <button 
+                    x-show="paymentMethod"
+                    wire:click="checkout"
+                    type="button"
+                    @disabled(count($cart) === 0)
+                    class="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-extrabold text-sm sm:text-base tracking-wide shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+                >
+                    <span x-text="`CHECKOUT (${paymentMethod === 'KNET' ? 'CARD' : paymentMethod})`"></span>
+                    <span class="font-mono bg-white/20 px-2.5 py-0.5 rounded-md text-xs sm:text-sm" x-text="`${totalInput} {{ $currency }}`"></span>
+                    <span class="text-[10px] sm:text-xs opacity-80">(Enter)</span>
+                </button>
             </div>
 
         </main>
@@ -531,27 +528,25 @@
                 </div>
 
                 <div class="md:hidden pt-3">
-                    <template x-if="!paymentMethod">
-                        <button 
-                            type="button" 
-                            @click="mobileTab = 'register'"
-                            class="w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs tracking-wider uppercase border border-slate-300 flex items-center justify-center gap-1.5 transition cursor-pointer"
-                        >
-                            <span>👉 Select Payment Method (Cash / Card)</span>
-                        </button>
-                    </template>
-                    <template x-if="paymentMethod">
-                        <button 
-                            wire:click="checkout"
-                            type="button"
-                            @disabled(count($cart) === 0)
-                            class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs tracking-wide shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
-                        >
-                            <span x-text="`CHECKOUT (${paymentMethod === 'KNET' ? 'CARD' : paymentMethod})`"></span>
-                            <span class="font-mono bg-white/20 px-2 py-0.5 rounded text-[11px]" x-text="`${totalInput} {{ $currency }}`">
-                            </span>
-                        </button>
-                    </template>
+                    <button 
+                        x-show="!paymentMethod"
+                        type="button" 
+                        @click="mobileTab = 'register'"
+                        class="w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs tracking-wider uppercase border border-slate-300 flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                        <span>👉 Select Payment Method (Cash / Card)</span>
+                    </button>
+                    <button 
+                        x-show="paymentMethod"
+                        wire:click="checkout"
+                        type="button"
+                        @disabled(count($cart) === 0)
+                        class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs tracking-wide shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                        <span x-text="`CHECKOUT (${paymentMethod === 'KNET' ? 'CARD' : paymentMethod})`"></span>
+                        <span class="font-mono bg-white/20 px-2 py-0.5 rounded text-[11px]" x-text="`${totalInput} {{ $currency }}`">
+                        </span>
+                    </button>
                 </div>
 
             </div>
@@ -577,7 +572,7 @@
                     🛒 {{ count($cart) }} {{ count($cart) === 1 ? 'item' : 'items' }}
                 </span>
                 <span class="font-mono text-xs font-bold text-white">
-                    {{ number_format($total, $currencyDecimals) }} {{ $currency }}
+                    <span x-text="totalInput"></span> {{ $currency }}
                 </span>
             </button>
             <button 
