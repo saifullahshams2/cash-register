@@ -79,11 +79,11 @@ class SwitchDatabaseCommand extends Command
 
     protected function switchToMysql(): int
     {
-        $host = $this->option('host') ?: env('DB_HOST', '127.0.0.1');
-        $port = $this->option('port') ?: env('DB_PORT', '3306');
-        $database = $this->option('database') ?: env('DB_DATABASE', 'cash_register');
-        $username = $this->option('username') ?: env('DB_USERNAME', 'root');
-        $password = $this->option('password') !== null ? (string) $this->option('password') : (string) env('DB_PASSWORD', '');
+        $host = $this->option('host') ?: config('database.connections.mysql.host', '127.0.0.1');
+        $port = $this->option('port') ?: config('database.connections.mysql.port', '3306');
+        $database = $this->option('database') ?: config('database.connections.mysql.database', 'cash_register');
+        $username = $this->option('username') ?: config('database.connections.mysql.username', 'root');
+        $password = $this->option('password') !== null ? (string) $this->option('password') : (string) config('database.connections.mysql.password', '');
 
         if (! preg_match('/^[a-zA-Z0-9_-]{1,64}$/', $database)) {
             $this->error("Invalid database name '{$database}'. Use only alphanumeric characters, underscores, and dashes.");

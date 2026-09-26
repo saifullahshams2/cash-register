@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class Setting extends Model
 {
@@ -17,9 +18,11 @@ class Setting extends Model
     public static function get(string $key, mixed $default = null): mixed
     {
         try {
-            $setting = static::where('key', $key)->first();
+            $settings = Cache::rememberForever('app_settings', function () {
+                return static::pluck('value', 'key')->all();
+            });
 
-            return $setting && ! is_null($setting->value) ? $setting->value : $default;
+            return array_key_exists($key, $settings) && ! is_null($settings[$key]) ? $settings[$key] : $default;
         } catch (\Throwable) {
             return $default;
         }
@@ -31,6 +34,8 @@ class Setting extends Model
             ['key' => $key],
             ['value' => $value]
         );
+        
+        Cache::forget('app_settings');
     }
 
     public static function getCurrency(): string

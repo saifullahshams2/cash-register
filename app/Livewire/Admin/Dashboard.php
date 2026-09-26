@@ -105,13 +105,13 @@ class Dashboard extends Component
         $this->currentLogo = Setting::get('site_logo');
         $this->currentFavicon = Setting::get('site_favicon');
 
-        $this->currentDbDriver = config('database.default', env('DB_CONNECTION', 'sqlite'));
+        $this->currentDbDriver = config('database.default', 'sqlite');
         $this->targetDbDriver = $this->currentDbDriver;
-        $this->mysqlHost = env('DB_HOST', '127.0.0.1');
-        $this->mysqlPort = (string) env('DB_PORT', '3306');
-        $this->mysqlDatabase = env('DB_DATABASE', 'cash_register');
-        $this->mysqlUsername = env('DB_USERNAME', 'root');
-        $this->mysqlPassword = (string) env('DB_PASSWORD', '');
+        $this->mysqlHost = config('database.connections.mysql.host', '127.0.0.1');
+        $this->mysqlPort = (string) config('database.connections.mysql.port', '3306');
+        $this->mysqlDatabase = config('database.connections.mysql.database', 'cash_register');
+        $this->mysqlUsername = config('database.connections.mysql.username', 'root');
+        $this->mysqlPassword = (string) config('database.connections.mysql.password', '');
     }
 
     public function setTab(string $tab): void
@@ -460,9 +460,13 @@ class Dashboard extends Component
      */
     public function getDailySalesProperty(): array
     {
-        $orders = Order::whereDate('created_at', today())->get();
-        $revenue = (float) $orders->sum('total');
-        $count = $orders->count();
+        $stats = Order::where('created_at', '>=', today()->startOfDay())
+            ->where('created_at', '<=', today()->endOfDay())
+            ->selectRaw('COUNT(*) as count, COALESCE(SUM(total), 0) as revenue')
+            ->first();
+
+        $revenue = (float) $stats->revenue;
+        $count = (int) $stats->count;
         $avg = $count > 0 ? round($revenue / $count, 3) : 0.000;
 
         return [
@@ -482,11 +486,14 @@ class Dashboard extends Component
         $startOfWeek = now()->startOfWeek();
         $endOfWeek = now()->endOfWeek();
 
-        $orders = Order::whereBetween('created_at', [$startOfWeek, $endOfWeek])->get();
+        $stats = Order::where('created_at', '>=', $startOfWeek)
+            ->where('created_at', '<=', $endOfWeek)
+            ->selectRaw('COUNT(*) as count, COALESCE(SUM(total), 0) as revenue')
+            ->first();
 
         return [
-            'revenue' => (float) $orders->sum('total'),
-            'count' => $orders->count(),
+            'revenue' => (float) $stats->revenue,
+            'count' => (int) $stats->count,
         ];
     }
 
@@ -497,20 +504,24 @@ class Dashboard extends Component
      */
     public function getMonthlySalesProperty(): array
     {
-        $orders = Order::whereMonth('created_at', now()->month)
-            ->whereYear('created_at', now()->year)
-            ->get();
+        $startOfMonth = now()->startOfMonth();
+        $endOfMonth = now()->endOfMonth();
+
+        $stats = Order::where('created_at', '>=', $startOfMonth)
+            ->where('created_at', '<=', $endOfMonth)
+            ->selectRaw('COUNT(*) as count, COALESCE(SUM(total), 0) as revenue')
+            ->first();
 
         return [
-            'revenue' => (float) $orders->sum('total'),
-            'count' => $orders->count(),
+            'revenue' => (float) $stats->revenue,
+            'count' => (int) $stats->count,
         ];
     }
 
     /**
      * Calendar date range sales metrics and orders
      *
-     * @return array{fromDate: string, toDate: string, isSingleDay: bool, revenue: float, count: int, cashRevenue: float, knetRevenue: float, orders: Collection}
+     * @return array{fromDate: string, toDate: string, isSingleDay: bool, revenue: float, count: int, cashRevenue: float, knetRevenue: float, orders: mixed}
      */
     public function getCalendarSalesProperty(): array
     {
@@ -523,24 +534,34 @@ class Dashboard extends Component
             $to = $temp;
         }
 
-        $orders = Order::whereDate('created_at', '>=', $from)
-            ->whereDate('created_at', '<=', $to)
+        $fromDateTime = \Carbon\Carbon::parse($from)->startOfDay();
+        $toDateTime = \Carbon\Carbon::parse($to)->endOfDay();
+
+        $stats = Order::where('created_at', '>=', $fromDateTime)
+            ->where('created_at', '<=', $toDateTime)
+            ->selectRaw('
+                COUNT(*) as count, 
+                COALESCE(SUM(total), 0) as revenue,
+                COALESCE(SUM(CASE WHEN payment_method = "CASH" THEN total ELSE 0 END), 0) as cashRevenue,
+                COALESCE(SUM(CASE WHEN payment_method IN ("CARD", "KNET") THEN total ELSE 0 END), 0) as knetRevenue
+            ')
+            ->first();
+
+        // Paginate orders to prevent loading thousands of items into memory
+        $orders = Order::where('created_at', '>=', $fromDateTime)
+            ->where('created_at', '<=', $toDateTime)
             ->with('items')
             ->orderByDesc('created_at')
-            ->get();
-
-        $revenue = (float) $orders->sum('total');
-        $cashRevenue = (float) $orders->where('payment_method', 'CASH')->sum('total');
-        $knetRevenue = (float) $orders->whereIn('payment_method', ['CARD', 'KNET'])->sum('total');
+            ->paginate(25);
 
         return [
             'fromDate' => $from,
             'toDate' => $to,
             'isSingleDay' => $from === $to,
-            'revenue' => $revenue,
-            'count' => $orders->count(),
-            'cashRevenue' => $cashRevenue,
-            'knetRevenue' => $knetRevenue,
+            'revenue' => (float) $stats->revenue,
+            'count' => (int) $stats->count,
+            'cashRevenue' => (float) $stats->cashRevenue,
+            'knetRevenue' => (float) $stats->knetRevenue,
             'orders' => $orders,
         ];
     }

@@ -1,6 +1,87 @@
 <div 
     x-data="{
         mobileTab: 'register',
+        search: '',
+        currencyDecimals: {{ $currencyDecimals }},
+        paymentMethod: @entangle('paymentMethod'),
+        totalDigits: @entangle('totalDigits'),
+        totalInput: @entangle('totalInput'),
+        tenderedInput: @entangle('tenderedInput'),
+        
+        get totalFloat() {
+            return parseFloat(this.totalInput) || 0;
+        },
+        
+        get tenderedFloat() {
+            return parseFloat(this.tenderedInput) || 0;
+        },
+        
+        get changeDue() {
+            return (this.tenderedFloat - this.totalFloat).toFixed(this.currencyDecimals);
+        },
+        
+        formatMoney(amount) {
+            return Number(amount).toFixed(this.currencyDecimals);
+        },
+
+        updateTotalInputFromDigits() {
+            if (this.totalDigits === '' || parseInt(this.totalDigits) === 0) {
+                this.totalDigits = '';
+                this.totalInput = this.formatMoney(0);
+            } else {
+                let units = parseInt(this.totalDigits);
+                let decimals = Math.max(0, Math.min(4, this.currencyDecimals));
+                let divisor = Math.pow(10, decimals);
+                this.totalInput = this.formatMoney(units / divisor);
+            }
+            if (['CARD', 'KNET'].includes(this.paymentMethod)) {
+                this.setExact();
+            }
+        },
+
+        numpadInput(char) {
+            if (char === '.') return;
+            if (!['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '00'].includes(char)) return;
+            if (this.totalDigits === '' && (char === '0' || char === '00')) return;
+            if (this.totalDigits.length + char.length > 9) return;
+            this.totalDigits += char;
+            this.updateTotalInputFromDigits();
+        },
+
+        numpadBackspace() {
+            if (this.totalDigits.length > 0) {
+                this.totalDigits = this.totalDigits.slice(0, -1);
+            }
+            this.updateTotalInputFromDigits();
+        },
+
+        numpadClear() {
+            this.totalDigits = '';
+            this.updateTotalInputFromDigits();
+        },
+
+        setExact() {
+            this.tenderedInput = this.formatMoney(this.totalFloat);
+            if (!this.paymentMethod) this.paymentMethod = 'CASH';
+        },
+
+        addTender(amount) {
+            let newAmount = this.tenderedFloat + parseFloat(amount);
+            this.tenderedInput = this.formatMoney(newAmount);
+            this.paymentMethod = 'CASH';
+        },
+
+        clearTender() {
+            this.tenderedInput = this.formatMoney(0);
+        },
+
+        setPaymentMethod(method) {
+            this.paymentMethod = method;
+            if (['CARD', 'KNET'].includes(method)) {
+                this.setExact();
+            }
+        },
+
         init() {
             window.addEventListener('keydown', (e) => {
                 // Focus search on '/'
@@ -11,11 +92,11 @@
                 // Numpad physical keys if not typing in search
                 if (document.activeElement !== $refs.searchInput) {
                     if (['0','1','2','3','4','5','6','7','8','9','.'].includes(e.key)) {
-                        $wire.numpadInput(e.key);
+                        this.numpadInput(e.key);
                     } else if (e.key === 'Backspace') {
-                        $wire.numpadBackspace();
+                        this.numpadBackspace();
                     } else if (e.key === 'Escape') {
-                        $wire.numpadClear();
+                        this.numpadClear();
                     } else if (e.key === 'Enter') {
                         $wire.checkout();
                     }
@@ -165,14 +246,12 @@
                 <div class="relative">
                     <input 
                         x-ref="searchInput"
-                        wire:model.live.debounce.150ms="search" 
+                        x-model="search"
                         type="text" 
                         placeholder="Search (Press /)"
                         class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition font-sans"
                     >
-                    @if($search)
-                        <button wire:click="$set('search', '')" class="absolute right-2 top-2 text-xs text-slate-400 hover:text-slate-700 cursor-pointer">✕</button>
-                    @endif
+                    <button x-show="search" @click="search = ''" class="absolute right-2 top-2 text-xs text-slate-400 hover:text-slate-700 cursor-pointer">✕</button>
                 </div>
             </div>
 
@@ -180,6 +259,7 @@
             <div class="flex-1 overflow-y-auto p-2 space-y-1.5">
                 @forelse($products as $product)
                     <button 
+                        x-show="search === '' || '{{ strtolower(addslashes($product->name)) }}'.includes(search.toLowerCase())"
                         wire:key="product-{{ $product->id }}"
                         wire:click="addToCart({{ $product->id }})"
                         type="button"
@@ -230,28 +310,28 @@
                 <!-- 1. NUMPAD (GRID) -->
                 <div class="flex-1 grid grid-cols-3 gap-1.5 h-full">
                     <!-- Row 1 -->
-                    <button wire:click="numpadInput('7')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">7</button>
-                    <button wire:click="numpadInput('8')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">8</button>
-                    <button wire:click="numpadInput('9')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">9</button>
+                    <button @click="numpadInput('7')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">7</button>
+                    <button @click="numpadInput('8')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">8</button>
+                    <button @click="numpadInput('9')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">9</button>
 
                     <!-- Row 2 -->
-                    <button wire:click="numpadInput('4')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">4</button>
-                    <button wire:click="numpadInput('5')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">5</button>
-                    <button wire:click="numpadInput('6')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">6</button>
+                    <button @click="numpadInput('4')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">4</button>
+                    <button @click="numpadInput('5')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">5</button>
+                    <button @click="numpadInput('6')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">6</button>
 
                     <!-- Row 3 -->
-                    <button wire:click="numpadInput('1')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">1</button>
-                    <button wire:click="numpadInput('2')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">2</button>
-                    <button wire:click="numpadInput('3')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">3</button>
+                    <button @click="numpadInput('1')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">1</button>
+                    <button @click="numpadInput('2')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">2</button>
+                    <button @click="numpadInput('3')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">3</button>
 
                     <!-- Row 4 -->
-                    <button wire:click="numpadInput('00')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-lg sm:text-xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">00</button>
-                    <button wire:click="numpadInput('0')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">0</button>
-                    <button wire:click="numpadInput('.')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-3xl sm:text-4xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">.</button>
+                    <button @click="numpadInput('00')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-lg sm:text-xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">00</button>
+                    <button @click="numpadInput('0')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-2xl sm:text-3xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">0</button>
+                    <button @click="numpadInput('.')" type="button" class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-3xl sm:text-4xl text-slate-900 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">.</button>
 
                     <!-- Row 5 -->
-                    <button wire:click="numpadClear" type="button" class="col-span-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-mono font-bold text-xs sm:text-sm tracking-wide transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">CLEAR TOTAL</button>
-                    <button wire:click="numpadBackspace" type="button" class="rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 font-mono font-bold text-xl sm:text-2xl transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">⌫</button>
+                    <button @click="numpadClear" type="button" class="col-span-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-mono font-bold text-xs sm:text-sm tracking-wide transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">CLEAR TOTAL</button>
+                    <button @click="numpadBackspace" type="button" class="rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 font-mono font-bold text-xl sm:text-2xl transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">⌫</button>
                 </div>
 
                 <!-- Small vertical divider between numpad and tender buttons -->
@@ -263,7 +343,7 @@
                     <div class="grid grid-cols-2 gap-1.5 flex-1">
                         @foreach($quickDenominations as $denom)
                             <button 
-                                wire:click="addTender({{ $denom['amount'] }})" 
+                                @click="addTender({{ $denom['amount'] }})" 
                                 type="button" 
                                 class="rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 font-mono font-bold text-xs sm:text-sm text-slate-800 transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer" 
                                 title="Add {{ $denom['amount'] }} {{ $currency }} to Cash"
@@ -274,12 +354,12 @@
                     </div>
 
                     <!-- EXACT Button (Higher / Prominent) -->
-                    <button wire:click="setExact" type="button" class="py-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-400 text-emerald-900 font-mono font-black text-sm sm:text-base tracking-wider transition active:scale-95 flex items-center justify-center shadow-xs cursor-pointer">
+                    <button @click="setExact" type="button" class="py-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-400 text-emerald-900 font-mono font-black text-sm sm:text-base tracking-wider transition active:scale-95 flex items-center justify-center shadow-xs cursor-pointer">
                         EXACT
                     </button>
 
                     <!-- Dedicated CLEAR TENDER Button -->
-                    <button wire:click="clearTender" type="button" class="py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 font-mono font-bold text-xs sm:text-sm tracking-wide transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">
+                    <button @click="clearTender" type="button" class="py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-300 text-rose-700 font-mono font-bold text-xs sm:text-sm tracking-wide transition active:scale-95 flex items-center justify-center shadow-2xs cursor-pointer">
                         CLEAR TENDER
                     </button>
                 </div>
@@ -290,34 +370,32 @@
             <div class="grid grid-cols-2 gap-2 shrink-0 pt-1">
                 <!-- 1. CASH BUTTON -->
                 <button 
-                    wire:click="setPaymentMethod('CASH')"
+                    @click="setPaymentMethod('CASH')"
                     type="button"
-                    class="py-3 px-4 rounded-xl border-2 font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer shadow-xs {{ $paymentMethod === 'CASH' ? 'bg-slate-900 border-slate-900 text-white ring-2 ring-slate-900/30' : 'bg-white border-slate-300 text-slate-800 hover:border-slate-500 hover:bg-slate-50' }}"
+                    :class="paymentMethod === 'CASH' ? 'bg-slate-900 border-slate-900 text-white ring-2 ring-slate-900/30' : 'bg-white border-slate-300 text-slate-800 hover:border-slate-500 hover:bg-slate-50'"
+                    class="py-3 px-4 rounded-xl border-2 font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer shadow-xs"
                 >
                     <span class="text-base sm:text-lg">💵</span>
                     <span>1. CASH</span>
-                    @if($paymentMethod === 'CASH')
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    @endif
+                    <span x-show="paymentMethod === 'CASH'" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 </button>
 
                 <!-- 2. CARD BUTTON -->
                 <button 
-                    wire:click="setPaymentMethod('CARD')"
+                    @click="setPaymentMethod('CARD')"
                     type="button"
-                    class="py-3 px-4 rounded-xl border-2 font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer shadow-xs {{ in_array($paymentMethod, ['CARD', 'KNET']) ? 'bg-slate-900 border-slate-900 text-white ring-2 ring-slate-900/30' : 'bg-white border-slate-300 text-slate-800 hover:border-slate-500 hover:bg-slate-50' }}"
+                    :class="['CARD', 'KNET'].includes(paymentMethod) ? 'bg-slate-900 border-slate-900 text-white ring-2 ring-slate-900/30' : 'bg-white border-slate-300 text-slate-800 hover:border-slate-500 hover:bg-slate-50'"
+                    class="py-3 px-4 rounded-xl border-2 font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer shadow-xs"
                 >
                     <span class="text-base sm:text-lg">💳</span>
                     <span>2. CARD</span>
-                    @if(in_array($paymentMethod, ['CARD', 'KNET']))
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    @endif
+                    <span x-show="['CARD', 'KNET'].includes(paymentMethod)" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 </button>
             </div>
 
             <!-- D. DIRECT CHECKOUT BUTTON (BLOCKED WITHOUT PAYMENT METHOD SELECTION) -->
             <div class="shrink-0 pt-1">
-                @if(empty($paymentMethod))
+                <template x-if="!paymentMethod">
                     <button 
                         type="button" 
                         disabled
@@ -325,20 +403,19 @@
                     >
                         <span>🔒 Select Cash or Card to Checkout</span>
                     </button>
-                @else
+                </template>
+                <template x-if="paymentMethod">
                     <button 
                         wire:click="checkout"
                         type="button"
                         @disabled(count($cart) === 0)
                         class="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-extrabold text-sm sm:text-base tracking-wide shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
                     >
-                        <span>CHECKOUT ({{ $paymentMethod === 'KNET' ? 'CARD' : $paymentMethod }})</span>
-                        <span class="font-mono bg-white/20 px-2.5 py-0.5 rounded-md text-xs sm:text-sm">
-                            {{ number_format($total, $currencyDecimals) }} {{ $currency }}
-                        </span>
+                        <span x-text="`CHECKOUT (${paymentMethod === 'KNET' ? 'CARD' : paymentMethod})`"></span>
+                        <span class="font-mono bg-white/20 px-2.5 py-0.5 rounded-md text-xs sm:text-sm" x-text="`${totalInput} {{ $currency }}`"></span>
                         <span class="text-[10px] sm:text-xs opacity-80">(Enter)</span>
                     </button>
-                @endif
+                </template>
             </div>
 
         </main>
@@ -419,8 +496,7 @@
                             <span class="text-[10px] text-slate-400">Direct Numpad Total</span>
                         </div>
                         <div class="text-right">
-                            <span class="font-mono font-black text-2xl sm:text-3xl text-white block leading-tight">
-                                {{ number_format($total, $currencyDecimals) }}
+                            <span class="font-mono font-black text-2xl sm:text-3xl text-white block leading-tight" x-text="totalInput">
                             </span>
                             <span class="text-[10px] sm:text-xs font-bold text-slate-300">{{ $currency }}</span>
                         </div>
@@ -433,22 +509,20 @@
                             <span class="text-[10px] text-slate-400">Tendered Amount</span>
                         </div>
                         <div class="text-right">
-                            <span class="font-mono font-bold text-xl sm:text-2xl text-slate-900 block leading-tight">
-                                {{ number_format((float) $tenderedInput, $currencyDecimals) }}
+                            <span class="font-mono font-bold text-xl sm:text-2xl text-slate-900 block leading-tight" x-text="tenderedInput">
                             </span>
                             <span class="text-[10px] sm:text-xs font-bold text-slate-500">{{ $currency }}</span>
                         </div>
                     </div>
 
                     <!-- 3. CHANGE ROW -->
-                    <div class="p-3 {{ $changeDue >= 0 ? 'bg-emerald-50/70' : 'bg-rose-50/70' }} flex items-center justify-between">
+                    <div class="p-3 flex items-center justify-between" :class="changeDue >= 0 ? 'bg-emerald-50/70' : 'bg-rose-50/70'">
                         <div>
-                            <span class="text-xs font-bold uppercase tracking-wider {{ $changeDue >= 0 ? 'text-emerald-800' : 'text-rose-800' }} block">3. Change</span>
+                            <span class="text-xs font-bold uppercase tracking-wider block" :class="changeDue >= 0 ? 'text-emerald-800' : 'text-rose-800'">3. Change</span>
                             <span class="text-[10px] text-slate-500">Balance Due</span>
                         </div>
                         <div class="text-right">
-                            <span class="font-mono font-black text-xl sm:text-2xl block leading-tight {{ $changeDue >= 0 ? 'text-emerald-700' : 'text-rose-600' }}">
-                                {{ number_format(max(0, $changeDue), $currencyDecimals) }}
+                            <span class="font-mono font-black text-xl sm:text-2xl block leading-tight" :class="changeDue >= 0 ? 'text-emerald-700' : 'text-rose-600'" x-text="Math.max(0, changeDue).toFixed(currencyDecimals)">
                             </span>
                             <span class="text-[10px] sm:text-xs font-bold text-slate-600">{{ $currency }}</span>
                         </div>
@@ -456,9 +530,8 @@
 
                 </div>
 
-                <!-- Mobile Direct Checkout in Cart View -->
                 <div class="md:hidden pt-3">
-                    @if(empty($paymentMethod))
+                    <template x-if="!paymentMethod">
                         <button 
                             type="button" 
                             @click="mobileTab = 'register'"
@@ -466,19 +539,19 @@
                         >
                             <span>👉 Select Payment Method (Cash / Card)</span>
                         </button>
-                    @else
+                    </template>
+                    <template x-if="paymentMethod">
                         <button 
                             wire:click="checkout"
                             type="button"
                             @disabled(count($cart) === 0)
                             class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs tracking-wide shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer"
                         >
-                            <span>CHECKOUT ({{ $paymentMethod === 'KNET' ? 'CARD' : $paymentMethod }})</span>
-                            <span class="font-mono bg-white/20 px-2 py-0.5 rounded text-[11px]">
-                                {{ number_format($total, $currencyDecimals) }} {{ $currency }}
+                            <span x-text="`CHECKOUT (${paymentMethod === 'KNET' ? 'CARD' : paymentMethod})`"></span>
+                            <span class="font-mono bg-white/20 px-2 py-0.5 rounded text-[11px]" x-text="`${totalInput} {{ $currency }}`">
                             </span>
                         </button>
-                    @endif
+                    </template>
                 </div>
 
             </div>

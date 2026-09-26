@@ -383,6 +383,11 @@
                             </tbody>
                         </table>
                     </div>
+                    @if($calendarSales['orders']->hasPages())
+                        <div class="p-3 border-t border-slate-200 bg-white">
+                            {{ $calendarSales['orders']->links() }}
+                        </div>
+                    @endif
                 </div>
 
             </div>

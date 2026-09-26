@@ -15,9 +15,6 @@ use Livewire\Component;
 
 class Pos extends Component
 {
-    public string $search = '';
-
-    /** @var array<int|string, array{id: int, name: string, code: string, quantity: int}> */
     public array $cart = [];
 
     public string $currency = 'KWD';
@@ -149,104 +146,8 @@ class Pos extends Component
 
     // --- Tender Cash Multi-Selector & Actions ---
 
-    public function setExact(): void
-    {
-        $total = $this->getTotalProperty();
-        $this->tenderedInput = number_format($total, $this->currencyDecimals, '.', '');
-        if ($this->paymentMethod === null) {
-            $this->paymentMethod = 'CASH';
-        }
-    }
+    // --- Alpine.js handles numpad and tender logic client-side ---
 
-    public function addTender(float $amount): void
-    {
-        $current = (float) $this->tenderedInput;
-        $newAmount = round($current + $amount, $this->currencyDecimals);
-        $this->tenderedInput = number_format($newAmount, $this->currencyDecimals, '.', '');
-        $this->paymentMethod = 'CASH';
-    }
-
-    public function clearTender(): void
-    {
-        $this->tenderedInput = number_format(0, $this->currencyDecimals, '.', '');
-    }
-
-    public function setDenomination(float $amount): void
-    {
-        $this->addTender($amount);
-    }
-
-    public function addDenomination(float $amount): void
-    {
-        $this->addTender($amount);
-    }
-
-    /**
-     * ATM-style right-to-left digit shifting with fixed 3 decimals
-     * Example: 1 -> 0.001, 238 -> 0.238, 11234 -> 11.234
-     */
-    public function numpadInput(string $char): void
-    {
-        if ($char === '.') {
-            return;
-        }
-
-        if (! in_array($char, ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '00'], true)) {
-            return;
-        }
-
-        // Ignore leading zeros if buffer is empty
-        if ($this->totalDigits === '' && ($char === '0' || $char === '00')) {
-            return;
-        }
-
-        // Prevent buffer overflow (up to 9 digits: 999,999.999 KWD)
-        if (strlen($this->totalDigits) + strlen($char) > 9) {
-            return;
-        }
-
-        $this->totalDigits .= $char;
-        $this->updateTotalInputFromDigits();
-    }
-
-    public function numpadBackspace(): void
-    {
-        if (strlen($this->totalDigits) > 0) {
-            $this->totalDigits = substr($this->totalDigits, 0, -1);
-        }
-
-        $this->updateTotalInputFromDigits();
-    }
-
-    public function numpadClear(): void
-    {
-        $this->totalDigits = '';
-        $this->updateTotalInputFromDigits();
-    }
-
-    private function updateTotalInputFromDigits(): void
-    {
-        if ($this->totalDigits === '' || (int) $this->totalDigits === 0) {
-            $this->totalDigits = '';
-            $this->totalInput = number_format(0, $this->currencyDecimals, '.', '');
-        } else {
-            $units = (int) $this->totalDigits;
-            $decimals = max(0, min(4, $this->currencyDecimals));
-            $divisor = 10 ** $decimals;
-            $this->totalInput = number_format($units / $divisor, $decimals, '.', '');
-        }
-
-        $this->autoUpdateExactIfMatched();
-    }
-
-    public function setPaymentMethod(string $method): void
-    {
-        $this->paymentMethod = $method;
-
-        if (in_array($method, ['CARD', 'KNET'], true)) {
-            $this->setExact();
-        }
-    }
 
     // --- Hold / Resume Cart ---
 
@@ -543,14 +444,7 @@ class Pos extends Component
 
     public function render()
     {
-        $productsQuery = Product::query()->where('is_active', true);
-
-        if (! empty($this->search)) {
-            $search = trim($this->search);
-            $productsQuery->where('name', 'like', "%{$search}%");
-        }
-
-        $products = $productsQuery->orderBy('name')->get();
+        $products = Product::query()->where('is_active', true)->orderBy('name')->get();
 
         return view('livewire.pos', [
             'products' => $products,
