@@ -49,6 +49,12 @@ class Dashboard extends Component
 
     public string $newUserPasswordConfirmation = '';
 
+    public ?int $changingPasswordUserId = null;
+
+    public string $changeUserPassword = '';
+
+    public string $changeUserPasswordConfirmation = '';
+
     // --- Settings State ---
     public string $companyName = '';
 
@@ -255,6 +261,46 @@ class Dashboard extends Component
             }
         } catch (\Throwable $e) {
             $this->errorMessage = $this->formatSafeErrorMessage($e, 'Failed to delete user');
+            $this->successMessage = null;
+        }
+    }
+
+    public function openChangePasswordModal(int $userId): void
+    {
+        $this->changingPasswordUserId = $userId;
+        $this->changeUserPassword = '';
+        $this->changeUserPasswordConfirmation = '';
+        $this->clearMessages();
+    }
+
+    public function closeChangePasswordModal(): void
+    {
+        $this->changingPasswordUserId = null;
+        $this->changeUserPassword = '';
+        $this->changeUserPasswordConfirmation = '';
+    }
+
+    public function changePassword(): void
+    {
+        if (! $this->changingPasswordUserId) {
+            return;
+        }
+
+        $this->validate([
+            'changeUserPassword' => 'required|string|min:6|same:changeUserPasswordConfirmation',
+        ], [], [
+            'changeUserPassword' => 'password',
+        ]);
+
+        try {
+            $user = User::findOrFail($this->changingPasswordUserId);
+            $user->password = Hash::make($this->changeUserPassword);
+            $user->save();
+
+            $this->successMessage = "Password for {$user->name} changed successfully.";
+            $this->closeChangePasswordModal();
+        } catch (\Throwable $e) {
+            $this->errorMessage = $this->formatSafeErrorMessage($e, 'Failed to change password');
             $this->successMessage = null;
         }
     }

@@ -685,7 +685,15 @@
                                         <td class="py-3 px-4 font-mono text-[11px] text-slate-500">
                                             {{ $user->created_at?->format('d M Y') ?? 'N/A' }}
                                         </td>
-                                        <td class="py-3 px-4 text-right">
+                                        <td class="py-3 px-4 text-right flex items-center justify-end gap-2">
+                                            <button 
+                                                wire:click="openChangePasswordModal({{ $user->id }})"
+                                                class="px-2.5 py-1 text-[11px] font-semibold text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg transition cursor-pointer"
+                                                title="Change Password"
+                                            >
+                                                Password
+                                            </button>
+
                                             @if($user->id !== Auth::id())
                                                 <button 
                                                     wire:click="deleteUser({{ $user->id }})"
@@ -702,7 +710,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="py-8 text-center text-slate-400 text-xs">
+                                        <td colspan="5" class="py-8 text-center text-slate-400 text-xs">
                                             No users found.
                                         </td>
                                     </tr>
@@ -712,6 +720,51 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Change Password Modal -->
+            @if ($changingPasswordUserId)
+                <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                    <div class="bg-white rounded-2xl shadow-2xl border border-slate-400 w-[320px] overflow-hidden flex flex-col relative">
+                        <!-- Close Button -->
+                        <button wire:click="closeChangePasswordModal" class="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition cursor-pointer">✕</button>
+                        
+                        <div class="px-6 pt-7 pb-2 text-center">
+                            <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">
+                                🔐
+                            </div>
+                            <h3 class="font-bold text-slate-900 text-base">Change Password</h3>
+                        </div>
+                        <form wire:submit="changePassword" class="px-6 pb-6 space-y-4">
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 text-center">New Password</label>
+                                <input 
+                                    wire:model="changeUserPassword" 
+                                    type="password" 
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition text-center"
+                                >
+                                @error('changeUserPassword') <span class="text-[10px] text-rose-600 font-bold mt-1 block text-center">{{ $message }}</span> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 text-center">Confirm Password</label>
+                                <input 
+                                    wire:model="changeUserPasswordConfirmation" 
+                                    type="password" 
+                                    class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition text-center"
+                                >
+                            </div>
+                            <div class="pt-3 flex flex-col gap-2">
+                                <button type="submit" class="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition cursor-pointer shadow-xs">
+                                    Save Password
+                                </button>
+                                <button type="button" wire:click="closeChangePasswordModal" class="w-full py-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition cursor-pointer">
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            @endif
+
         @endif
 
         <!-- ================================================================= -->
