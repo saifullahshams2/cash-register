@@ -267,7 +267,7 @@ class Dashboard extends Component
             'companyName' => 'required|string|max:150',
             'siteTitle' => 'required|string|max:100',
             'siteLogo' => 'nullable|mimes:png,jpg,jpeg,webp|max:2048',
-            'siteFavicon' => 'nullable|mimes:png,ico,webp|max:1024',
+            'siteFavicon' => 'nullable|mimes:png,ico,webp,jpg,jpeg|max:1024',
         ], [
         ], [
             'companyName' => 'company name',

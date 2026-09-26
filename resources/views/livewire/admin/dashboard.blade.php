@@ -827,10 +827,10 @@
                                 <input 
                                     wire:model="siteFavicon" 
                                     type="file" 
-                                    accept="image/x-icon,image/png,image/webp"
+                                    accept="image/x-icon,image/png,image/webp,image/jpeg"
                                     class="text-xs text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-900 file:text-white hover:file:bg-slate-800 cursor-pointer max-w-full"
                                 >
-                                <p class="text-[10px] text-slate-400">ICO, PNG, or WebP icon up to 1MB.</p>
+                                <p class="text-[10px] text-slate-400">ICO, PNG, JPG, or WebP icon up to 1MB.</p>
                                 @if ($currentFavicon)
                                     <button 
                                         type="button" 
