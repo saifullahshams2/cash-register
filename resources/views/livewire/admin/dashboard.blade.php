@@ -786,10 +786,10 @@
                                 <input 
                                     wire:model="siteLogo" 
                                     type="file" 
-                                    accept="image/*"
+                                    accept="image/png,image/jpeg,image/webp"
                                     class="text-xs text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-900 file:text-white hover:file:bg-slate-800 cursor-pointer max-w-full"
                                 >
-                                <p class="text-[10px] text-slate-400">PNG, JPG, SVG, WebP up to 2MB.</p>
+                                <p class="text-[10px] text-slate-400">PNG, JPG, WebP up to 2MB.</p>
                                 @if ($currentLogo)
                                     <button 
                                         type="button" 
@@ -827,10 +827,10 @@
                                 <input 
                                     wire:model="siteFavicon" 
                                     type="file" 
-                                    accept="image/x-icon,image/png,image/svg+xml"
+                                    accept="image/x-icon,image/png,image/webp"
                                     class="text-xs text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-900 file:text-white hover:file:bg-slate-800 cursor-pointer max-w-full"
                                 >
-                                <p class="text-[10px] text-slate-400">ICO, PNG, or SVG icon up to 1MB.</p>
+                                <p class="text-[10px] text-slate-400">ICO, PNG, or WebP icon up to 1MB.</p>
                                 @if ($currentFavicon)
                                     <button 
                                         type="button" 
