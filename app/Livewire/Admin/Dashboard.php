@@ -60,6 +60,8 @@ class Dashboard extends Component
 
     public string $siteTitle = '';
 
+    public string $pwaTitle = '';
+
     public $siteLogo = null;
 
     public ?string $currentLogo = null;
@@ -67,6 +69,10 @@ class Dashboard extends Component
     public $siteFavicon = null;
 
     public ?string $currentFavicon = null;
+
+    public $pwaIcon = null;
+
+    public ?string $currentPwaIcon = null;
 
     // --- Database Engine State ---
     public string $currentDbDriver = 'sqlite';
@@ -108,8 +114,10 @@ class Dashboard extends Component
 
         $this->companyName = Setting::get('company_name', 'Store POS');
         $this->siteTitle = Setting::get('site_title', 'CASH REGISTER');
+        $this->pwaTitle = Setting::get('pwa_title', $this->siteTitle);
         $this->currentLogo = Setting::get('site_logo');
         $this->currentFavicon = Setting::get('site_favicon');
+        $this->currentPwaIcon = Setting::get('pwa_icon');
 
         $this->currentDbDriver = config('database.default', 'sqlite');
         $this->targetDbDriver = $this->currentDbDriver;
@@ -312,19 +320,31 @@ class Dashboard extends Component
         $this->validate([
             'companyName' => 'required|string|max:150',
             'siteTitle' => 'required|string|max:100',
+            'pwaTitle' => 'nullable|string|max:100',
             'siteLogo' => 'nullable|mimes:png,jpg,jpeg,webp|max:2048',
             'siteFavicon' => 'nullable|mimes:png,ico,webp,jpg,jpeg|max:1024',
+            'pwaIcon' => 'nullable|mimes:png,jpg,jpeg,webp|max:2048',
         ], [
         ], [
             'companyName' => 'company name',
             'siteTitle' => 'website title',
+            'pwaTitle' => 'PWA app title',
             'siteLogo' => 'logo image',
             'siteFavicon' => 'favicon image',
+            'pwaIcon' => 'PWA icon image',
         ]);
 
         try {
             Setting::set('company_name', trim($this->companyName));
             Setting::set('site_title', trim($this->siteTitle));
+            Setting::set('pwa_title', trim($this->pwaTitle));
+
+            if ($this->siteLogo || $this->siteFavicon || $this->pwaIcon) {
+                if (! file_exists(public_path('storage'))) {
+                    Artisan::call('storage:link');
+                }
+            }
+
             if ($this->siteLogo) {
                 $path = $this->siteLogo->store('branding', 'public');
                 $url = asset('storage/'.$path);
@@ -339,6 +359,14 @@ class Dashboard extends Component
                 Setting::set('site_favicon', $url);
                 $this->currentFavicon = $url;
                 $this->siteFavicon = null;
+            }
+
+            if ($this->pwaIcon) {
+                $path = $this->pwaIcon->store('branding', 'public');
+                $url = asset('storage/'.$path);
+                Setting::set('pwa_icon', $url);
+                $this->currentPwaIcon = $url;
+                $this->pwaIcon = null;
             }
 
             $this->successMessage = 'Website settings updated successfully!';
@@ -363,6 +391,14 @@ class Dashboard extends Component
         $this->currentFavicon = null;
         $this->siteFavicon = null;
         $this->successMessage = 'Favicon removed.';
+    }
+
+    public function removePwaIcon(): void
+    {
+        Setting::set('pwa_icon', null);
+        $this->currentPwaIcon = null;
+        $this->pwaIcon = null;
+        $this->successMessage = 'PWA icon removed.';
     }
 
     // --- Database Engine Actions ---

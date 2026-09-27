@@ -19,26 +19,72 @@ if (file_exists(app_path('Installer/InstallerController.php'))) {
 // Dynamic Web Manifest
 Route::get('/manifest.json', function () {
     $siteTitle = Setting::get('site_title', config('app.name', 'Cash Register POS'));
-    $siteLogo = Setting::get('site_logo');
+    $pwaTitle = Setting::get('pwa_title') ?: $siteTitle;
+    $pwaIcon = Setting::get('pwa_icon') ?: Setting::get('site_logo');
 
-    // Use default favicon if no logo is set, or a transparent 1x1 if nothing is available
-    $iconUrl = $siteLogo ?: asset('favicon.ico');
+    $icons = [];
+
+    if ($pwaIcon) {
+        $extension = strtolower(pathinfo(parse_url($pwaIcon, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION));
+        $pwaMime = match ($extension) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'webp' => 'image/webp',
+            default => 'image/png',
+        };
+
+        $icons[] = [
+            'src' => $pwaIcon,
+            'sizes' => '192x192',
+            'type' => $pwaMime,
+            'purpose' => 'any',
+        ];
+        $icons[] = [
+            'src' => $pwaIcon,
+            'sizes' => '512x512',
+            'type' => $pwaMime,
+            'purpose' => 'any',
+        ];
+        $icons[] = [
+            'src' => $pwaIcon,
+            'sizes' => '512x512',
+            'type' => $pwaMime,
+            'purpose' => 'maskable',
+        ];
+    } else {
+        $icons[] = [
+            'src' => asset('icons/icon-192x192.png'),
+            'sizes' => '192x192',
+            'type' => 'image/png',
+            'purpose' => 'any',
+        ];
+        $icons[] = [
+            'src' => asset('icons/icon-512x512.png'),
+            'sizes' => '512x512',
+            'type' => 'image/png',
+            'purpose' => 'any',
+        ];
+        $icons[] = [
+            'src' => asset('icons/icon-maskable-512x512.png'),
+            'sizes' => '512x512',
+            'type' => 'image/png',
+            'purpose' => 'maskable',
+        ];
+    }
 
     return response()->json([
-        'name' => $siteTitle,
-        'short_name' => $siteTitle,
+        'id' => '/?source=pwa',
+        'name' => $pwaTitle,
+        'short_name' => $pwaTitle,
+        'description' => 'Fast, offline-ready Cash Register POS application',
         'start_url' => '/',
+        'scope' => '/',
         'display' => 'standalone',
-        'theme_color' => '#ffffff',
-        'background_color' => '#ffffff',
-        'icons' => [
-            [
-                'src' => $iconUrl,
-                'sizes' => '192x192 512x512',
-                'type' => 'image/png',
-                'purpose' => 'any maskable',
-            ],
-        ],
+        'orientation' => 'any',
+        'theme_color' => '#0f172a',
+        'background_color' => '#0f172a',
+        'icons' => $icons,
+    ], 200, [
+        'Content-Type' => 'application/manifest+json; charset=utf-8',
     ]);
 })->name('manifest');
 

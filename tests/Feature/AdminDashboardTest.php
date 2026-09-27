@@ -9,6 +9,8 @@ use App\Models\Setting;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -189,6 +191,33 @@ class AdminDashboardTest extends TestCase
 
         $this->assertEquals('Downtown Cafe', Setting::get('company_name'));
         $this->assertEquals('Coffee House', Setting::get('site_title'));
+    }
+
+    public function test_admin_can_update_pwa_settings_and_upload_pwa_icon(): void
+    {
+        Storage::fake('public');
+        $admin = User::where('role', User::ROLE_ADMIN)->first();
+        $this->actingAs($admin);
+
+        $file = UploadedFile::fake()->image('pwa-icon.png', 512, 512);
+
+        Livewire::test(Dashboard::class)
+            ->set('tab', 'settings')
+            ->set('companyName', 'Downtown Cafe')
+            ->set('siteTitle', 'Coffee House')
+            ->set('pwaTitle', 'Downtown Express POS')
+            ->set('pwaIcon', $file)
+            ->call('saveSettings')
+            ->assertSet('successMessage', 'Website settings updated successfully!');
+
+        $this->assertEquals('Downtown Express POS', Setting::get('pwa_title'));
+        $this->assertNotNull(Setting::get('pwa_icon'));
+
+        Livewire::test(Dashboard::class)
+            ->call('removePwaIcon')
+            ->assertSet('successMessage', 'PWA icon removed.');
+
+        $this->assertNull(Setting::get('pwa_icon'));
     }
 
     public function test_admin_can_export_sales_report_as_a4_pdf(): void

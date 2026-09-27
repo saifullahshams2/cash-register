@@ -5,18 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     @php
         $siteTitle = \App\Models\Setting::get('site_title', config('app.name', 'Cash Register POS'));
+        $pwaTitle = \App\Models\Setting::get('pwa_title') ?: $siteTitle;
         $siteFavicon = \App\Models\Setting::get('site_favicon');
+        $pwaIcon = \App\Models\Setting::get('pwa_icon');
     @endphp
     <title>{{ $siteTitle }}</title>
     @if($siteFavicon)
         <link rel="icon" href="{{ $siteFavicon }}">
+    @else
+        <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+        <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('icons/icon-192x192.png') }}">
     @endif
+    <link rel="apple-touch-icon" href="{{ $pwaIcon ?: ($siteFavicon ?: asset('icons/icon-192x192.png')) }}">
     <link rel="manifest" href="{{ route('manifest') }}">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="{{ $pwaTitle }}">
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js');
+                navigator.serviceWorker.register('/sw.js').catch((err) => {
+                    console.warn('PWA service worker registration error:', err);
+                });
             });
         }
     </script>

@@ -818,6 +818,24 @@
                         @enderror
                     </div>
 
+                    <!-- PWA App Title -->
+                    <div>
+                        <label for="pwaTitle" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 flex items-center gap-1.5">
+                            <span>📲</span> Progressive Web App (PWA) Title
+                        </label>
+                        <input 
+                            wire:model="pwaTitle" 
+                            type="text" 
+                            id="pwaTitle" 
+                            placeholder="e.g. Cash Register POS"
+                            class="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition font-sans"
+                        >
+                        <p class="text-[11px] text-slate-500 mt-1">App name displayed on mobile home screens, app drawer, and desktop shortcuts after installation.</p>
+                        @error('pwaTitle')
+                            <p class="text-[11px] text-rose-600 font-semibold mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     <!-- Logo Upload & Preview -->
                     <div class="pt-4 border-t border-slate-100">
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
@@ -894,6 +912,47 @@
                                     </button>
                                 @endif
                                 @error('siteFavicon')
+                                    <p class="text-[11px] text-rose-600 font-semibold">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PWA App Icon Upload & Preview -->
+                    <div class="pt-4 border-t border-slate-100">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2 flex items-center gap-1.5">
+                            <span>📱</span> PWA App Icon
+                        </label>
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+                            <!-- Preview Box -->
+                            <div class="w-14 h-14 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
+                                @if ($pwaIcon)
+                                    <img src="{{ $pwaIcon->temporaryUrl() }}" class="w-full h-full object-cover">
+                                @elseif ($currentPwaIcon)
+                                    <img src="{{ $currentPwaIcon }}" class="w-full h-full object-cover">
+                                @else
+                                    <img src="{{ asset('icons/icon-192x192.png') }}" class="w-full h-full object-cover" alt="Default PWA Icon">
+                                @endif
+                            </div>
+
+                            <div class="flex-1 space-y-2 min-w-0">
+                                <input 
+                                    wire:model="pwaIcon" 
+                                    type="file" 
+                                    accept="image/png,image/jpeg,image/webp"
+                                    class="text-xs text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-900 file:text-white hover:file:bg-slate-800 cursor-pointer max-w-full"
+                                >
+                                <p class="text-[10px] text-slate-400">Square PNG, JPG, or WebP (min. 512x512 recommended). Used for install prompts &amp; device home screens.</p>
+                                @if ($currentPwaIcon)
+                                    <button 
+                                        type="button" 
+                                        wire:click="removePwaIcon" 
+                                        class="text-[11px] font-semibold text-rose-600 hover:text-rose-800 cursor-pointer"
+                                    >
+                                        Remove custom PWA icon
+                                    </button>
+                                @endif
+                                @error('pwaIcon')
                                     <p class="text-[11px] text-rose-600 font-semibold">{{ $message }}</p>
                                 @enderror
                             </div>
